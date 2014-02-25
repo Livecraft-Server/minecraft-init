@@ -525,7 +525,7 @@ mc_update() {
 			fi
 		else
 			echo "Not updating $SP_JAR. It's not necessary"
-			as_user "rm $MCPATH/minecraft_server.jar.update"
+			as_user "rm $MCPATH/spigot.jar.update"
 		fi
 
 		if check_update_craftbukkit
