@@ -19,6 +19,7 @@
 # Support for multiworld by Benni-chan
 # Log rolls without needing restarts by Solorvox
 # Option for killing server in an emergency by jbondhus
+# Spigot support by alfonsojon
 
 # Loads config file
 
@@ -475,6 +476,25 @@ check_update_craftbukkit() {
 	fi
 }
 
+check_update_spigot() {
+	echo "Checking for update for spigot.jar"
+	as_user "cd $MCPATH && wget -q -O $MCPATH/minecraft_server.jar.update http://ci.md-5.net/job/Spigot/lastSuccessfulBuild/artifact/Spigot-Server/target/spigot.jar"
+
+	if [ -r "$MCPATH/spigot.jar.update" ]
+	then
+		if `diff $MCPATH/$MC_JAR $MCPATH/spigot.jar.update >/dev/null`
+		then
+			echo "You are already running the latest version of spigot.jar."
+			return 1
+		else
+			echo "Update of $SP_JAR is needed."
+			return 0
+		fi
+	else
+		echo "Something went wrong. Couldn't download minecraft_server.jar"
+	fi
+}
+
 mc_update() {
 	if is_running
 	then
@@ -490,7 +510,21 @@ mc_update() {
 				echo "Something went wrong. Couldn't replace your original $MC_JAR with minecraft_server.jar.update"
 			fi
 		else
-			echo "Not updating $MB_JAR. It's not necessary"
+			echo "Not updating $MC_JAR. It's not necessary"
+			as_user "rm $MCPATH/minecraft_server.jar.update"
+		fi
+
+		if check_update_spigot
+		then
+			if [ -r "$MCPATH/spigot.jar.update" ]
+			then
+				as_user "mv $MCPATH/spigot.update $MCPATH/$SP_JAR"
+				echo "Thats it. Update of $SP_JAR done."
+			else
+				echo "Something went wrong. Couldn't replace your original $SP_JAR with spigot.jar.update"
+			fi
+		else
+			echo "Not updating $SP_JAR. It's not necessary"
 			as_user "rm $MCPATH/minecraft_server.jar.update"
 		fi
 
@@ -588,7 +622,7 @@ overviewer_copy_worlds() {
 whitelist(){
 	mc_command "whitelist list"
 	sleep 1s
-	whitelist=$(tac $MCPATH/server.log | grep -m 1 "White-listed players:")
+	whitelist=$(tac $SERVERLOG | grep -m 1 "White-listed players:")
 
 	echo
 	echo "Currently there are the following players on your whitelist:"
@@ -715,8 +749,10 @@ case "$1" in
 	check-update)
 		check_update_vanilla
 		check_update_craftbukkit
+		check_update_spigot
 		as_user "rm $MCPATH/minecraft_server.jar.update"
 		as_user "rm $MCPATH/craftbukkit.jar.update"
+		as_user "rm $MCPATH/spigot.jar.update"
 		;;
 	update)
 		#update minecraft_server.jar and craftbukkit.jar (thanks karrth)
@@ -783,7 +819,7 @@ case "$1" in
 			sleep 1s
 			# Get server log in reverse order, assume that response to 'list'
 			# command is already there.
-			tac $MCPATH/server.log | \
+			tac $SERVERLOG | \
 				# Extract two lines. 1) containing ASCII color code and comma-separated list
 				# of  player names and 2) the line saying "[...] players online:"
 				grep --before-context 1 --max-count 1 "players online" | \
@@ -806,7 +842,7 @@ case "$1" in
 			mc_command list
 			sleep 1s
 			# Same as technique as 'connected' command, but count lines.
-			tac $MCPATH/server.log | \
+			tac $SERVERLOG | \
 				grep --before-context 1 --max-count 1 "players online" | \
 				head -n 1 | sed 's/[\x01-\x1F\x7F]..//g' | grep . | sed 's/, /\n/g' | wc -l
 		else
@@ -818,12 +854,12 @@ case "$1" in
 		;;
 	log)
 		# Display server log using 'cat'.
-		cat $MCPATH/server.log
+		cat $SERVERLOG
 		;;
 	last)
 		# Greps for recently logged in users
 		echo Recently logged in users:
-		cat $MCPATH/server.log | awk '/entity|conn/ {sub(/lost/,"disconnected");print $1,$2,$4,$5}'
+		cat $SERVERLOG | awk '/entity|conn/ {sub(/lost/,"disconnected");print $1,$2,$4,$5}'
 		;;
 	status)
 		# Shows server status
@@ -837,7 +873,7 @@ case "$1" in
 	version)
 		if is_running; then
 			mc_command version
-			tac $MCPATH/server.log | grep -m 1 "This server is running"
+			tac $SERVERLOG | grep -m 1 "This server is running"
 		else
 			echo "The server needs to be running to check version."
 		fi
