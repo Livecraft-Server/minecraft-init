@@ -478,11 +478,11 @@ check_update_craftbukkit() {
 
 check_update_spigot() {
 	echo "Checking for update for spigot.jar"
-	as_user "cd $MCPATH && wget -q -O $MCPATH/minecraft_server.jar.update http://ci.md-5.net/job/Spigot/lastSuccessfulBuild/artifact/Spigot-Server/target/spigot.jar"
+	as_user "cd $MCPATH && wget -q -O $MCPATH/spigot.jar.update http://ci.md-5.net/job/Spigot/lastSuccessfulBuild/artifact/Spigot-Server/target/spigot.jar"
 
 	if [ -r "$MCPATH/spigot.jar.update" ]
 	then
-		if `diff $MCPATH/$MC_JAR $MCPATH/spigot.jar.update >/dev/null`
+		if `diff $MCPATH/$SP_JAR $MCPATH/spigot.jar.update >/dev/null`
 		then
 			echo "You are already running the latest version of spigot.jar."
 			return 1
@@ -491,7 +491,7 @@ check_update_spigot() {
 			return 0
 		fi
 	else
-		echo "Something went wrong. Couldn't download minecraft_server.jar"
+		echo "Something went wrong. Couldn't download spigot.jar"
 	fi
 }
 
