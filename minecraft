@@ -145,6 +145,18 @@ mc_command() {
 	fi
 }
 
+mc_reload() {
+	if is_running
+	then
+		echo "$SERVICE is running... reloading plugins
+		mc_say Reloading Plugins
+		mc_command reload
+		mc_say Reload Complete.
+	else
+		echo "$SERVICE is not running."
+	fi
+}
+
 mc_saveoff() {
 	if is_running
 	then
@@ -971,6 +983,7 @@ case "$1" in
 		echo -e "   stop \t\t Stops the server"
 		echo -e "   kill \t\t Kills the server"
 		echo -e "   restart \t\t Restarts the server"
+		echo -e "   reload \t\t Reloads the server plugins"
 		echo -e "   backup \t\t Backups the worlds defined in the script"
 		echo -e "   whole-backup \t Backups the entire server folder"
 		echo -e "   check-update \t Checks for updates of $CB_JAR and $MC_JAR"
