@@ -148,7 +148,7 @@ mc_command() {
 mc_reload() {
 	if is_running
 	then
-		echo "$SERVICE is running... reloading plugins
+		echo "$SERVICE is running... reloading plugins."
 		mc_say Reloading Plugins
 		mc_command reload
 		mc_say Reload Complete.
