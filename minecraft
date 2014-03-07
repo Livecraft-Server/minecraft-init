@@ -283,7 +283,7 @@ log_roll() {
 			as_user "rm -r $path"
 		fi
 	else
-		echo "Logs are already rolled to \"$MCPATH/logs\".".
+		echo "Logs are already rolled to \"$MCPATH/logs\"."
 	fi
 }
 
