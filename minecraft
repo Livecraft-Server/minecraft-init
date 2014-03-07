@@ -251,7 +251,7 @@ check_backup_settings() {
 }
 
 log_roll() {
-	if [ ! -f $MCPATH/*.log ]; then
+	if [ ! -f $MCPATH/logs/latest.log ]; then
 		# Moves the logfiles and compresses that backup directory
 		check_backup_settings
 		path=`datepath $LOGPATH/logs_ $ARCHIVEENDING`
