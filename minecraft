@@ -251,35 +251,39 @@ check_backup_settings() {
 }
 
 log_roll() {
-	# Moves the logfiles and compresses that backup directory
-	check_backup_settings
-	path=`datepath $LOGPATH/logs_ $ARCHIVEENDING`
-	as_user "mkdir -p $path"
-
-	shopt -s extglob
-	for FILE in $(ls $MCPATH/*.log)
-	do
-		as_user "cp $FILE $path"
-		# only if previous command was successful
-		if [ $? -eq 0 ]; then
-			if [[ "$FILE" = @(*-+([0-9]).log) && "$FILE" = !(*-0.log) ]]
-			# some mods already roll logs. remove all but the most recent file
-			# which ends with -0.log
-			then
-				as_user "rm $FILE"
+	if [ ! -f $MCPATH/*.log ]; then
+		# Moves the logfiles and compresses that backup directory
+		check_backup_settings
+		path=`datepath $LOGPATH/logs_ $ARCHIVEENDING`
+		as_user "mkdir -p $path"
+	
+		shopt -s extglob
+		for FILE in $(ls $MCPATH/*.log)
+		do
+			as_user "cp $FILE $path"
+			# only if previous command was successful
+			if [ $? -eq 0 ]; then
+				if [[ "$FILE" = @(*-+([0-9]).log) && "$FILE" = !(*-0.log) ]]
+				# some mods already roll logs. remove all but the most recent file
+				# which ends with -0.log
+				then
+					as_user "rm $FILE"
+				else
+				# truncate the existing log without restarting server
+					as_user "cp /dev/null $FILE"
+					as_user "echo \"Previous logs rolled to $path\" > $FILE"
+				fi
 			else
-			# truncate the existing log without restarting server
-				as_user "cp /dev/null $FILE"
-				as_user "echo \"Previous logs rolled to $path\" > $FILE"
+				echo "Failed to rotate log from $FILE into $path"
 			fi
-		else
-			echo "Failed to rotate log from $FILE into $path"
+		done
+	
+		as_user "$COMPRESSCMD $path$ARCHIVEENDING $path"
+		if [ $? -eq 0 ]; then
+			as_user "rm -r $path"
 		fi
-	done
-
-	as_user "$COMPRESSCMD $path$ARCHIVEENDING $path"
-	if [ $? -eq 0 ]; then
-		as_user "rm -r $path"
+	else
+		echo "Logs are already rolled to \"$MCPATH/logs\".".
 	fi
 }
 
