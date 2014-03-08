@@ -869,8 +869,8 @@ case "$1" in
 		log_roll
 		;;
 	log)
-		# Display server log using 'cat'.
-		cat $SERVERLOG
+		# Display server log using tac & more.
+		tac $SERVERLOG | more
 		;;
 	last)
 		# Greps for recently logged in users
@@ -990,7 +990,7 @@ case "$1" in
 		echo -e "   reload \t\t Reloads the server plugins"
 		echo -e "   backup \t\t Backups the worlds defined in the script"
 		echo -e "   whole-backup \t Backups the entire server folder"
-		echo -e "   check-update \t Checks for updates of $CB_JAR and $MC_JAR"
+		echo -e "   check-update \t Checks for updates of $CB_JAR, $SP_JAR, and $MC_JAR"
 		echo -e "   update \t\t Fetches the latest version of minecraft.jar server and Bukkit"
 		echo -e "   log-roll \t\t Moves and compresses the logfiles"
 		echo -e "   log \t\t\t Prints the server log"
