@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Settings file for minecraft-init
-# ================================
+# ==================================
 # 
 # Make a copy of this file named config
 # and edit the variables to your needs.
@@ -54,7 +54,7 @@ MAXMEM="2048M"
 FORMAT='$1'
 
 # Settings for backups
-# ===============================
+# ==================================
 
 # Location for world backups
 BACKUPPATH="/home/${USERNAME}/mcbackup/worlds"
@@ -92,14 +92,14 @@ COMPRESS_WHOLEBACKUP=YES
 
 
 # Settings for log rolling
-# ===============================
+# (Not used in Minecraft 1.7 and up)
+# ==================================
 
 # Location for old logs
 # Used by the log-roll command
 LOGPATH="/home/${USERNAME}/mcbackup/logs"
 
 # Whether or not to gzip logs (must be commented out for no - DO NOT CHANGE TO NO)
-#
 GZIPLOGS=YES
 
 # What to append to the logfile name (Leave blank for nothing)
@@ -107,7 +107,7 @@ LOGFILEAPPEND="logfile_"
 
 
 # Settings for overviewer command
-# ===============================
+# ==================================
 
 # Where the Map is generated
 OUTPUTMAP="/home/${USERNAME}/mc-overviewer/render"
@@ -125,8 +125,7 @@ OVCONFIGNAME="config.py"
 OVBACKUP="/home/${USERNAME}/mc-overviewer/overviewerbackups"
 
 # Things to leave alone ;)
-# =====================
-
+# ==================================
 INVOCATION="java -XX:MaxPermSize=256M -Xmx$MAXMEM -Xms$INITMEM -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=$CPU_COUNT -XX:+AggressiveOpts -jar $SERVICE nogui"
 
 # Path to the the mounted ramdisk (the default will work in most senarios).
