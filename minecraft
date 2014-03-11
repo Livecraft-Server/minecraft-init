@@ -251,6 +251,7 @@ check_backup_settings() {
 }
 
 log_roll() {
+	# MC 1.7 introduced automatic log rolling, making this redundant for 1.7+ servers.
 	if [ ! -f $MCPATH/logs/latest.log ]; then
 		# Moves the logfiles and compresses that backup directory
 		check_backup_settings
@@ -635,7 +636,7 @@ overviewer_copy_worlds() {
 	done
 }
 
-whitelist(){
+whitelist() {
 	mc_command "whitelist list"
 	sleep 1s
 	whitelist=$(tac $SERVERLOG | grep -m 1 "White-listed players:")
