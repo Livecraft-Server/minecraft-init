@@ -882,8 +882,8 @@ case "$1" in
 		log_roll
 		;;
 	log)
-		# Display server log using tac & more.
-		tac $SERVERLOG | more
+		# Display server log using 'cat'.
+		cat $SERVERLOG
 		;;
 	last)
 		# Greps for recently logged in users
