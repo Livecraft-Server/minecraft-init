@@ -173,6 +173,7 @@ mc_saveoff() {
 	if is_running
 	then
 		echo "$SERVICE is running... suspending saves"
+		mc_command 
 		mc_command save-off
 		mc_command save-all
 		sync
@@ -186,6 +187,7 @@ mc_saveon() {
 	if is_running
 	then
 		echo "$SERVICE is running... re-enabling saves"
+		mc_command 
 		mc_command save-on
 	else
 		echo "$SERVICE was not running. Not resuming saves."
