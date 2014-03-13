@@ -21,6 +21,12 @@
 # Option for killing server in an emergency by jbondhus
 # Spigot support by alfonsojon
 
+# OS X doesn't support init.d scripts, so let's prevent running on OS X.
+if [ `uname` == "Darwin" ]; then
+	echo "OS X is not currently supported."
+	exit 1
+fi
+
 # Loads config file
 
 if [ -L $0 ]
