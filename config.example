@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 #
 # Settings file for minecraft-init
 # ==================================
@@ -19,7 +19,7 @@ CB_JAR="craftbukkit.jar"
 # Define the release of CraftBukkit to use (stable or unstable)
 CB_RELEASE="stable"
 
-# Name of server.jar to use (either $MC_JAR or $CB_JAR)
+# Name of server.jar to use ($MC_JAR, $CB_JAR, or $SP_JAR.)
 SERVICE=$CB_JAR
 
 # Name to use for the screen instance

@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # /etc/init.d/minecraft
 
 ### BEGIN INIT INFO
@@ -157,6 +157,7 @@ mc_start() {
 mc_command() {
 	if is_running
 	then
+			as_user "screen -p 0 -S $SCREEN -x eval 'stuff \"$(eval echo \'\')\"\015'"
 			as_user "screen -p 0 -S $SCREEN -X eval 'stuff \"$(eval echo $FORMAT)\"\015'"
 	else
 			echo "$SERVICE was not running. Not able to run command."
@@ -164,14 +165,19 @@ mc_command() {
 }
 
 mc_reload() {
-	if is_running
+	if [[ $SERVICE != $MC_JAR ]]
 	then
-		echo "$SERVICE is running... reloading plugins."
-		mc_say Reloading Plugins
-		mc_command reload
-		mc_say Reload Complete.
+		if is_running
+		then
+			echo "$SERVICE is running... reloading plugins."
+			mc_say Reloading Plugins
+			mc_command reload
+			mc_say Reload Complete.
+		else
+			echo "$SERVICE is not running."
+		fi
 	else
-		echo "$SERVICE is not running."
+		echo "Plugins not supported by $SERVICE. Not able to run command."
 	fi
 }
 
@@ -179,7 +185,6 @@ mc_saveoff() {
 	if is_running
 	then
 		echo "$SERVICE is running... suspending saves"
-		mc_command 
 		mc_command save-off
 		mc_command save-all
 		sync
