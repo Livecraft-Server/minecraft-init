@@ -1,4 +1,4 @@
-﻿Init script for various minecraft servers
+Init script for various minecraft servers
 =======================================
 A init script that apart form starting and stopping the server correctly also has some extra features
 for running a mincraft/craftbukkit/spigot server.
