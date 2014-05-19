@@ -170,8 +170,8 @@ mc_reload() {
 		then
 			echo -e "Reloading plugins is not recommended and can cause some problems."
 			echo -e "Are you sure you would like to reload plugins? (y/N)"
-			read $INPUT
-			if [ "$INPUT" == "y" ]
+			read input
+			if [[ $input == "Y" || $input == "y" ]]
 			then
 				echo "$SERVICE is running... reloading plugins."
 				mc_say "Reloading Plugins"
