@@ -164,19 +164,27 @@ mc_command() {
 }
 
 mc_reload() {
-	if [[ $SERVICE != $MC_JAR ]]
-	then
-		if is_running
+	if is_running
 		then
-			echo "$SERVICE is running... reloading plugins."
-			mc_say Reloading Plugins
-			mc_command reload
-			mc_say Reload Complete.
+		if [[ $SERVICE != $MC_JAR ]]
+		then
+			echo -e "Reloading plugins is not recommended and can cause some problems."
+			echo -e "Are you sure you would like to reload plugins? (y/N)"
+			read $INPUT
+			if [ $INPUT -eq "y" ]
+			then
+				echo "$SERVICE is running... reloading plugins."
+				mc_say Reloading Plugins
+				mc_command reload
+				mc_say Reload Complete.
+			else
+				echo "Cancelled."
+			fi
 		else
-			echo "$SERVICE is not running."
+			echo "Plugins not supported by $SERVICE. Not able to run command."
 		fi
 	else
-		echo "Plugins not supported by $SERVICE. Not able to run command."
+		echo "$SERVICE is not running."
 	fi
 }
 
