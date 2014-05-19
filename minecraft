@@ -835,6 +835,16 @@ case "$1" in
 		fi
 		to_disk
 		;;
+	reload)
+		if is_running; then
+			mc_saveoff
+			to_disk
+			mc_saveon
+			mc_reload
+		else
+			echo "Server is not running."
+		fi
+		;;
 	save-on)
 		# Re-enables saving if it was disabled by save-off.
 		if is_running; then
