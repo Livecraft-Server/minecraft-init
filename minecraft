@@ -157,7 +157,7 @@ mc_start() {
 mc_command() {
 	if is_running
 	then
-			as_user "screen -p 0 -S $SCREEN -x eval 'stuff \"$(eval echo \"\015\")\"\015'"
+			# fixme: Find a way to send enter to the console before running mc_command
 			as_user "screen -p 0 -S $SCREEN -X eval 'stuff \"$(eval echo $FORMAT)\"\015'"
 	else
 			echo "$SERVICE was not running. Not able to run command."
