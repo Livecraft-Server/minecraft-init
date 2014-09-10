@@ -23,7 +23,7 @@
 
 # OS X doesn't support init.d scripts, so let's prevent running on OS X.
 if [ `uname` == "Darwin" ]; then
-	echo "OS X is not currently supported."
+	echo "OS X is not supported."
 	exit 1
 fi
 
@@ -157,6 +157,7 @@ mc_start() {
 mc_command() {
 	if is_running
 	then
+			as_user "screen -p 0 -S $SCREEN -x eval 'stuff \"$(eval echo \"\")\"\015'"
 			as_user "screen -p 0 -S $SCREEN -X eval 'stuff \"$(eval echo $FORMAT)\"\015'"
 	else
 			echo "$SERVICE was not running. Not able to run command."
@@ -205,7 +206,6 @@ mc_saveon() {
 	if is_running
 	then
 		echo "$SERVICE is running... re-enabling saves"
-		mc_command
 		mc_command save-on
 	else
 		echo "$SERVICE was not running. Not resuming saves."
@@ -570,13 +570,14 @@ mc_update() {
 
 		if check_update_spigot
 		then
-			if [ -r "$MCPATH/spigot.jar.update" ]
-			then
-				as_user "mv $MCPATH/spigot.update $MCPATH/$SP_JAR"
-				echo "Thats it. Update of $SP_JAR done."
-			else
-				echo "Something went wrong. Couldn't replace your original $SP_JAR with spigot.jar.update"
-			fi
+			echo "fixme: Implement updating via SpigotPatcher; check for Spigot #1629"
+			#if [ -r "$MCPATH/spigot.jar.update" ]
+			#then
+			#	as_user "mv $MCPATH/spigot.update $MCPATH/$SP_JAR"
+			#	echo "Thats it. Update of $SP_JAR done."
+			#else
+			#	echo "Something went wrong. Couldn't replace your original $SP_JAR with spigot.jar.update"
+			#fi
 		else
 			echo "Not updating $SP_JAR. It's not necessary"
 			as_user "rm $MCPATH/spigot.jar.update"
@@ -584,13 +585,15 @@ mc_update() {
 
 		if check_update_craftbukkit
 		then
-			if [ -r "$MCPATH/craftbukkit.jar.update" ]
-			then
-				as_user "mv $MCPATH/craftbukkit.jar.update $MCPATH/$CB_JAR"
-				echo "Thats it. Update of $CB_JAR done."
-			else
-				echo "Something went wrong. Couldn't replace your original $CB_JAR with craftbukkit.jar.update"
-			fi
+			echo "Updating is currently not possible for copyright reasons."
+			echo "Please visit http://www.bukkit.org/ for more info."
+			#if [ -r "$MCPATH/craftbukkit.jar.update" ]
+			#then
+			#	as_user "mv $MCPATH/craftbukkit.jar.update $MCPATH/$CB_JAR"
+			#	echo "Thats it. Update of $CB_JAR done."
+			#else
+			#	echo "Something went wrong. Couldn't replace your original $CB_JAR with craftbukkit.jar.update"
+			#fi
 		else
 			echo "Not updating $CB_JAR. It's not necessary"
 			as_user "rm $MCPATH/craftbukkit.jar.update"
@@ -809,7 +812,7 @@ case "$1" in
 		as_user "rm $MCPATH/spigot.jar.update"
 		;;
 	update)
-		#update minecraft_server.jar and craftbukkit.jar (thanks karrth)
+		#update minecraft_server.jar, craftbukkit.jar, and spigot.jar (thanks karrth)
 		if is_running; then
 			mc_say "SERVER UPDATE IN 10 SECONDS."
 			mc_stop
