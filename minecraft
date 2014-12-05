@@ -510,48 +510,9 @@ check_update_vanilla() {
 #	esac
 #}
 
-check_update_craftbukkit() {
-  echo "Updating is currently not possible for copyright reasons."
-  echo "Please visit http://www.bukkit.org/ for more info."
-  return 1
-#	echo "Checking for update for craftbukkit.jar"
-#	echo "You are on release channel \"$CB_RELEASE\""
-#
-#	as_user "cd $MCPATH && wget -q -O $MCPATH/craftbukkit.jar.update $(get_cb_release_channel)"
-#	if [ -r "$MCPATH/craftbukkit.jar.update" ]
-#	then
-#		if `diff $MCPATH/$CB_JAR $MCPATH/craftbukkit.jar.update >/dev/null`
-#		then
-#			echo "You are already running the latest version of craftbukkit.jar."
-#			return 1
-#		else
-#			echo "Update of $CB_JAR is needed."
-#			return 0
-#		fi
-#	else
-#		echo "Something went wrong. Couldn't download craftbukkit.jar"
-#	fi
-}
-
 check_update_spigot() {
-  echo "fixme: Implement updating via SpigotPatcher; check for Spigot #1629"
+  echo "fixme: Implement Spigot BuildTools.jar"
   return 1
-#	echo "Checking for update for spigot.jar"
-#	as_user "cd $MCPATH && wget -q -O $MCPATH/spigot.jar.update http://ci.md-5.net/job/Spigot/lastSuccessfulBuild/artifact/Spigot-Server/target/spigot.jar"
-#
-#	if [ -r "$MCPATH/spigot.jar.update" ]
-#	then
-#		if `diff $MCPATH/$SP_JAR $MCPATH/spigot.jar.update >/dev/null`
-#		then
-#			echo "You are already running the latest version of spigot.jar."
-#			return 1
-#		else
-#			echo "Update of $SP_JAR is needed."
-#			return 0
-#		fi
-#	else
-#		echo "Something went wrong. Couldn't download spigot.jar"
-#	fi
 }
 
 mc_update() {
@@ -819,11 +780,8 @@ case "$1" in
 		;;
 	check-update)
 		check_update_vanilla
-		check_update_craftbukkit
 		check_update_spigot
 		as_user "rm $MCPATH/minecraft_server.jar.update"
-		as_user "rm $MCPATH/craftbukkit.jar.update"
-		as_user "rm $MCPATH/spigot.jar.update"
 		;;
 	update)
 		#update minecraft_server.jar, craftbukkit.jar, and spigot.jar (thanks karrth)
@@ -1055,8 +1013,8 @@ case "$1" in
 		echo -e "   reload \t\t Reloads the server configuration"
 		echo -e "   backup \t\t Backups the worlds defined in the script"
 		echo -e "   whole-backup \t Backups the entire server folder"
-		echo -e "   check-update \t Checks for updates of $CB_JAR, $SP_JAR, and $MC_JAR"
-		echo -e "   update \t\t Fetches the latest version of minecraft.jar server and Bukkit"
+		echo -e "   check-update \t Checks for updates of $SP_JAR, and $MC_JAR"
+		echo -e "   update \t\t Fetches the latest version of the Minecraft and Spigot server."
 		echo -e "   log-roll \t\t Moves and compresses the logfiles"
 		echo -e "   log \t\t\t Prints the server log"
 		echo -e "   to-disk \t\t Copies the worlds from the ramdisk to worldstorage"

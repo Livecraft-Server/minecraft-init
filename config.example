@@ -7,20 +7,14 @@
 # and edit the variables to your needs.
 #
 
-# Name of vanilla server jar (no need to change if you're running craftbukkit or spigot and vice versa)
+# Name of vanilla server jar
 MC_JAR="minecraft_server.jar"
 
-# Name of spigot jar
+# Name of Spigot jar
 SP_JAR="spigot.jar"
 
-# Name of craftbukkit jar 
-CB_JAR="craftbukkit.jar"
-
-# Define the release of CraftBukkit to use (stable or unstable)
-CB_RELEASE="stable"
-
-# Name of server.jar to use ($MC_JAR, $CB_JAR, or $SP_JAR.)
-SERVICE=$CB_JAR
+# Name of server.jar to use ($MC_JAR or $SP_JAR.)
+SERVICE=$SP_JAR
 
 # Name to use for the screen instance
 SCREEN="server_screen"
