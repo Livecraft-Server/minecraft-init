@@ -1,14 +1,14 @@
-Init script for various minecraft servers
+Init script for various Minecraft servers
 =======================================
-A init script that apart form starting and stopping the server correctly also has some extra features
-for running a mincraft/craftbukkit/spigot server.
+A init script that, apart form starting and stopping the server correctly, has many extra features
+for running a vanilla Minecraft or Spigot server.
 
 Features
 --------
 
- * Utilization of ramdisk for world data, decreases lag when getting world chunks
- * Cleaning of server.log, a big log file slows down the server
+ * Utilization of a RAM disk for world data, which decreases lag when reading world chunks
  * Backup for worlds
+ * Support for automated server management
  * Server updating and complete backup
  * Exclude files and directories from full backup by adding them to "exclude.list"
 
