@@ -494,25 +494,9 @@ check_update_vanilla() {
 	fi
 }
 
-#get_cb_release_channel() {
-#	CB_URL="http://dl.bukkit.org/latest-"
-#
-#	case $CB_RELEASE in
-#		unstable|UNSTABLE|Unstable|dev|development)
-#			echo $CB_URL"dev/craftbukkit.jar"
-#		;;
-#		beta|Beta|BETA)
-#			echo $CB_URL"beta/craftbukkit.jar"
-#		;;
-#		*)
-#			echo $CB_URL"rb/craftbukkit.jar"
-#		;;
-#	esac
-#}
-
 check_update_spigot() {
-  echo "fixme: Implement Spigot BuildTools.jar"
-  return 1
+  as_user "cd $MCPATH && wget -q -O $MCPATH/BuildTools/BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar"
+  as_user "cd $MCPATH && java -jar $MCPATH/BuildTools/BuildTools.jar"
 }
 
 mc_update() {
@@ -536,33 +520,8 @@ mc_update() {
 
 		if check_update_spigot
 		then
-			echo "fixme: Implement updating via SpigotPatcher; check for Spigot #1629"
-			#if [ -r "$MCPATH/spigot.jar.update" ]
-			#then
-			#	as_user "mv $MCPATH/spigot.update $MCPATH/$SP_JAR"
-			#	echo "Thats it. Update of $SP_JAR done."
-			#else
-			#	echo "Something went wrong. Couldn't replace your original $SP_JAR with spigot.jar.update"
-			#fi
-		else
-			echo "Not updating $SP_JAR. It's not necessary"
-			as_user "rm $MCPATH/spigot.jar.update"
-		fi
-
-		if check_update_craftbukkit
-		then
-			echo "Updating is currently not possible for copyright reasons."
-			echo "Please visit http://www.bukkit.org/ for more info."
-			#if [ -r "$MCPATH/craftbukkit.jar.update" ]
-			#then
-			#	as_user "mv $MCPATH/craftbukkit.jar.update $MCPATH/$CB_JAR"
-			#	echo "Thats it. Update of $CB_JAR done."
-			#else
-			#	echo "Something went wrong. Couldn't replace your original $CB_JAR with craftbukkit.jar.update"
-			#fi
-		else
-			echo "Not updating $CB_JAR. It's not necessary"
-			as_user "rm $MCPATH/craftbukkit.jar.update"
+			as_user "mv $MCPATH/BuildTools/Spigot/Spigot-Server/target/spigot-*.jar $SP_JAR"
+			echo "That's it. Update of $SP_JAR done."
 		fi
 	fi
 }

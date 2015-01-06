@@ -14,12 +14,12 @@ Features
 
 Requirements
 ------------
-screen, rsync
+git, java, screen, rsync
 
 Access server console
 =====================
 
-	screen -r minecraft
+	screen -x minecraft
 
 Exit the console
 	
