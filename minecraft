@@ -576,6 +576,36 @@ overviewer_start() {
 		fi
 }
 
+overviewer_poi() {
+		if [ ! -e $OVPATH/overviewer.py ]
+		then
+				if [ ! "$OVPATH" == "apt" ]
+				then
+						echo "Minecraft-Overviewer is not installed in \"$OVPATH\""
+						exit 1
+				else
+						echo "Using APT repository installed Minecraft-Overviewer"
+				fi
+		fi
+		if [ ! -e $OUTPUTMAP ]
+		then
+				as_user "mkdir -p $OUTPUTMAP"
+		fi
+		if [ -e $OVCONFIGPATH/$OVCONFIGNAME ]
+		then
+				echo "Start generating POIs with Minecraft-Overviewer..."
+				if [ "$OVPATH" == "apt" ]
+				then
+						as_user "overviewer.py --config=$OVCONFIGPATH/$OVCONFIGNAME --genpoi"
+				else
+						as_user "python $OVPATH/overviewer.py --config=$OVCONFIGPATH/$OVCONFIGNAME --genpoi"
+				fi
+				echo "POIs generated."
+		else
+				echo "No config file found, can't render POIs..."
+		fi
+}
+
 overviewer_copy_worlds() {
 	#
 	# Backup the worlds for overviewer
@@ -887,6 +917,19 @@ case "$1" in
 			overviewer_start $2
 		fi
 		;;
+	overviewerpoi)
+		if is_running; then
+			mc_say "Generating overviewer POI"
+			mc_saveoff
+			to_disk
+			overviewer_copy_worlds
+			mc_saveon
+			overviewer_poi $2
+		else
+			overviewer_copy_worlds
+			overviewer_poi $2
+		fi
+		;;
 	screen)
 		if is_running; then
 			as_user "script /dev/null -q -c \"screen -rx $SCREEN\""
@@ -969,6 +1012,7 @@ case "$1" in
 		echo -e "   worlds \t\t Displays a list of available worlds"
 		echo -e "   ramdisk WORLD \t Toggles ramdisk configuration for WORLD"
 		echo -e "   overviewer WORLD \t Creates a map of the WORLD with Minecraft-Overviewer"
+		echo -e "   overviewerpoi WORLD \t Creates the POIs of the WORLD with Minecraft-Overviewer"
 		echo -e "   whitelist \t\t Prints the current whitelist"
 		echo -e "   whitelist-add NAME \t Adds the specified player to the server whitelist"
 		echo -e "   whitelist-reload \t Reloads the whitelist"
