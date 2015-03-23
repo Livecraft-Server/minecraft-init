@@ -22,22 +22,20 @@
 # Spigot support by alfonsojon
 
 # OS X doesn't support init.d scripts, so let's prevent running on OS X.
-if [ $(uname) == "Darwin" ]; then
+if [ "$(uname)" == "Darwin" ]; then
 	echo "OS X is not supported."
 	exit 1
 fi
 
 # Loads config file
 
-if [ -L $0 ]
-then
-	source $(readlink -e $0 | sed "s:[^/]*$:config:")
+if [ -L "$0" ]; then
+	source $(readlink -e "$0" | sed "s:[^/]*$:config:")
 else
-	source $(echo $0 | sed "s:[^/]*$:config:")
+	source $(echo "$0" | sed "s:[^/]*$:config:")
 fi
 
-if [ "$SERVICE" == "" ]
-then
+if [ "$SERVICE" == "" ]; then
 	echo "Couldn't load config file, please edit config.example and rename it to config"
 	logger -t minecraft-init "Couldn't load config file, please edit config.example and rename it to config"
 	exit
@@ -45,7 +43,7 @@ fi
 
 # Defines $SERVERLOG depending on the Minecraft version used.
 # Minecraft 1.6 and under use "$MCPATH/server.log", whereas Minecraft 1.7 and up use "$MCPATH/logs/latest.log".
-if [ -e $MCPATH/logs/latest.log ]; then
+if [ -e "$MCPATH"/logs/latest.log ]; then
 	SERVERLOG="$MCPATH/logs/latest.log"
 else
 	SERVERLOG="$MCPATH/server.log"
@@ -55,29 +53,25 @@ fi
 
 
 as_user() {
-	if [ $(whoami) == $USERNAME ]; then
+	if [ $(whoami) == "$USERNAME" ]; then
 		bash -c "$1"
 	else
-		su $USERNAME -s /bin/bash -c "$1"
+		su "$USERNAME" -s "/usr/bin/env bash -c" "$1"
 	fi
 }
 
 is_running() {
 	# Checks for the minecraft servers screen session
 	# returns true if it exists.
-	pidfile=${MCPATH}/${SCREEN}.pid
+	pidfile="${MCPATH}"/"${SCREEN}".pid
 
-	if [ -f "$pidfile" ]
-	then
-		pid=$(head -1 $pidfile)
-		if ps ax | grep -v grep | grep ${pid} | grep "${SCREEN}" > /dev/null
-		then
+	if [ -f "$pidfile" ]; then
+		pid=$(head -1 "$pidfile")
+		if ps ax | grep -v grep | grep ${pid} | grep "${SCREEN}" > /dev/null; then
 			return 0
 		else
-			if [ -z "$isInStop" ]
-			then
-				if [ -z "$roguePrinted" ]
-				then
+			if [ -z "$isInStop" ]; then
+				if [ -z "$roguePrinted" ]; then
 					roguePrinted=1
 					echo "Rogue pidfile found!"
 				fi
@@ -85,8 +79,7 @@ is_running() {
 			return 1
 		fi
 	else
-		if ps ax | grep -v grep | grep "${SCREEN} ${INVOCATION}" > /dev/null
-		then
+		if ps ax | grep -v grep | grep "${SCREEN} ${INVOCATION}" > /dev/null; then
 			echo "No pidfile found, but server's running."
 			echo "Re-creating the pidfile."
 
@@ -109,23 +102,21 @@ datepath() {
 	# $2 file ending to check for uniqueness
 	# $3 file ending to return
 
-	if [ -e $1$(date +%F)$2 ]
-	then
+	if [ -e $1$(date +%F)$2 ]; then
 		echo $1$(date +%FT%T)$3
 	else
-		echo $1$(date +%F)$3
+		printf '%b\n' $1$(date +%F)$3
 	fi
 }
 
 mc_start() {
-	servicejar=$MCPATH/$SERVICE
-	if [ ! -f "$servicejar" ]
-	then
-		echo "Failed to start: Can't find the specified Minecraft jar under $servicejar. Please check your config!"
+	servicejar="$MCPATH"/"$SERVICE"
+	if [ ! -f "$servicejar" ]; then
+		printf '%b\n' "Failed to start: Can't find the specified Minecraft jar under $servicejar. Please check your config!"
 		exit 1
 	fi
 
-	pidfile=${MCPATH}/${SCREEN}.pid
+	pidfile="${MCPATH}"/"${SCREEN}".pid
 	check_permissions
 
 	as_user "cd $MCPATH && screen -dmS $SCREEN $INVOCATION"
@@ -135,21 +126,20 @@ mc_start() {
 	# Waiting for the server to start
 	#
 	seconds=0
-	until is_running
-	do
+	until is_running; do
 		sleep 1
 		seconds=$seconds+1
 		if [[ $seconds -eq 5 ]]
 		then
-			echo "Still not running, waiting a while longer..."
+			printf '%b\n' "Still not running, waiting a while longer..."
 		fi
 		if [[ $seconds -ge 120 ]]
 		then
-			echo "Failed to start, aborting."
+			printf '%b\n' "Failed to start, aborting."
 			exit 1
 		fi
 	done
-	echo "$SERVICE is running."
+	printf '%b\n' "$SERVICE is running."
 }
 
 mc_command() {
@@ -158,7 +148,7 @@ mc_command() {
 			# fixme: Find a way to send enter to the console before running mc_command
 			as_user "screen -p 0 -S $SCREEN -X eval 'stuff \"$(eval echo $FORMAT)\"\015'"
 	else
-			echo "$SERVICE was not running. Not able to run command."
+			printf '%b\n' "$SERVICE was not running. Not able to run command."
 	fi
 }
 
@@ -167,8 +157,8 @@ mc_reload() {
 		then
 		if [[ $SERVICE != $MC_JAR ]]
 		then
-			echo -e "Reloading the server configuration is not recommended and can cause some problems."
-			echo -e "Are you sure you would like to reload the server configuration? (y/N)"
+			printf '%b\n' "Reloading the server configuration is not recommended and can cause some problems."
+			printf '%b\n' "Are you sure you would like to reload the server configuration? (y/N)"
 			read input
 			if [[ $input == "Y" || $input == "y" ]]
 			then
@@ -355,7 +345,7 @@ mc_whole_backup() {
 
 	if [ -r "$locationOfScript/exclude.list" ]
 	then
-		echo "...except the following files and/or dirs:"
+		printf '%b\n' "...except the following files and/or dirs:"
 		cat $locationOfScript/exclude.list
 		exclude="$EXCLUDEARG$locationOfScript/exclude.list"
 	fi
@@ -381,13 +371,13 @@ mc_world_backup() {
 	if [ "$BACKUPSCRIPTCOMPATIBLE" ]
 	then
 		# If it is enabled, then delete the old backups to prevent errors
-		echo "Detected that backup script compatibility is enabled, deleting old backups that are not necessary."
+		printf '%b\n' "Detected that backup script compatibility is enabled, deleting old backups that are not necessary."
 		as_user "rm -r $BACKUPPATH/*"
 	fi
 
 	for INDEX in ${!WORLDNAME[@]}
 	do
-		echo "Backing up minecraft ${WORLDNAME[$INDEX]}"
+		printf '%b\n' "Backing up minecraft ${WORLDNAME[$INDEX]}"
 		if [ "$WORLDEDITCOMPATIBLE" ]
 		# If this is set tars will be created compatible to WorldEdit
 		then
@@ -425,18 +415,18 @@ check_links() {
 				then
 					as_user "rm -f $MCPATH/${WORLDNAME[$INDEX]}"
 					as_user "ln -s $RAMDISK/${WORLDNAME[$INDEX]} $MCPATH/${WORLDNAME[$INDEX]}"
-					echo "Created link for ${WORLDNAME[$INDEX]}"
+					printf '%b\n' "Created link for ${WORLDNAME[$INDEX]}"
 				fi
 			else
 				if [ "$link" != "${WORLDSTORAGE}/${WORLDNAME[$INDEX]}" ]
 				then
 					as_user "rm -f $MCPATH/${WORLDNAME[$INDEX]}"
 					as_user "ln -s ${WORLDSTORAGE}/${WORLDNAME[$INDEX]} $MCPATH/${WORLDNAME[$INDEX]}"
-					echo "Created link for ${WORLDNAME[$INDEX]}"
+					printf '%b\n' "Created link for ${WORLDNAME[$INDEX]}"
 				fi
 			fi
 		else
-			echo "Could not process the world named '${WORLDNAME[$INDEX]}'. Please move all worlds to ${WORLDSTORAGE}."
+			printf '%b\n' "Could not process the world named '${WORLDNAME[$INDEX]}'. Please move all worlds to ${WORLDSTORAGE}."
 
 			exit 1
 		fi
@@ -453,7 +443,7 @@ to_ram() {
 			then
 				as_user "mkdir -p $RAMDISK"
 				as_user "rsync -rt --exclude 'ramdisk' ${WORLDSTORAGE}/${WORLDNAME[$INDEX]}/ $RAMDISK/${WORLDNAME[$INDEX]}"
-				echo "${WORLDNAME[$INDEX]} copied to ram"
+				printf '%b\n' "${WORLDNAME[$INDEX]} copied to ram"
 			fi
 		fi
 	done
@@ -466,7 +456,7 @@ to_disk() {
 		if ${WORLDRAM[$INDEX]}
 		then
 			as_user "rsync -rt --exclude 'ramdisk' $MCPATH/${WORLDNAME[$INDEX]}/ ${WORLDSTORAGE}/${WORLDNAME[$INDEX]}"
-			echo "${WORLDNAME[$INDEX]} copied to disk"
+			printf '%b\n' "${WORLDNAME[$INDEX]} copied to disk"
 		fi
 	done
 }
@@ -474,21 +464,21 @@ to_disk() {
 check_update_vanilla() {
 	MC_SERVER_URL=$(wget -q -O - http://minecraft.net/download | grep minecraft_server.jar\ | cut -d \" -f 6)
 
-	echo "Checking for update for minecraft_server.jar (Vanilla)"
+	printf '%b\n' "Checking for update for minecraft_server.jar (Vanilla)"
 	as_user "cd $MCPATH && wget -q -O $MCPATH/minecraft_server.jar.update $MC_SERVER_URL"
 
 	if [ -r "$MCPATH/minecraft_server.jar.update" ]
 	then
 		if $(diff $MCPATH/$MC_JAR $MCPATH/minecraft_server.jar.update >/dev/null)
 		then
-			echo "You are already running the latest version of minecraft_server.jar."
+			printf '%b\n' "You are already running the latest version of minecraft_server.jar."
 			return 1
 		else
-			echo "Update of $MC_JAR is needed."
+			printf '%b\n' "Update of $MC_JAR is needed."
 			return 0
 		fi
 	else
-		echo "Something went wrong. Couldn't download minecraft_server.jar"
+		printf '%b\n' "Something went wrong. Couldn't download minecraft_server.jar"
 	fi
 }
 
@@ -499,19 +489,19 @@ check_update_spigot() {
 mc_update() {
 	if is_running
 	then
-		echo "$SERVICE is running! Will not start update."
+		printf '%b\n' "$SERVICE is running! Will not start update."
 	else
 		if check_update_vanilla
 		then
 			if [ -r "$MCPATH/minecraft_server.jar.update" ]
 			then
 				as_user "mv $MCPATH/minecraft_server.jar.update $MCPATH/$MC_JAR"
-				echo "Thats it. Update of $MC_JAR done."
+				printf '%b\n' "Thats it. Update of $MC_JAR done."
 			else
-				echo "Something went wrong. Couldn't replace your original $MC_JAR with minecraft_server.jar.update"
+				printf '%b\n' "Something went wrong. Couldn't replace your original $MC_JAR with minecraft_server.jar.update"
 			fi
 		else
-			echo "Not updating $MC_JAR. It's not necessary"
+			printf '%b\n' "Not updating $MC_JAR. It's not necessary"
 			as_user "rm $MCPATH/minecraft_server.jar.update"
 		fi
 
@@ -519,7 +509,7 @@ mc_update() {
 		then
 			as_user "cd $MCPATH && java -jar $MCPATH/BuildTools/BuildTools.jar"
 			as_user "mv $MCPATH/BuildTools/Spigot/Spigot-Server/target/spigot-*.jar $SP_JAR"
-			echo "That's it. Update of $SP_JAR done."
+			printf '%b\n' "That's it. Update of $SP_JAR done."
 		fi
 	fi
 }
@@ -527,19 +517,19 @@ mc_update() {
 change_ramdisk_state() {
 	if [ ! -e $WORLDSTORAGE/$1 ]
 	then
-		echo "World \"$1\" not found."
+		printf '%b\n' "World \"$1\" not found."
 		exit 1
 	fi
 
 	if [ -e $WORLDSTORAGE/$1/ramdisk ]
 	then
 		rm $WORLDSTORAGE/$1/ramdisk
-		echo "Removed ramdisk flag from \"$1\""
+		printf '%b\n' "Removed ramdisk flag from \"$1\""
 	else
 		touch $WORLDSTORAGE/$1/ramdisk
-		echo "Added ramdisk flag to \"$1\""
+		printf '%b\n' "Added ramdisk flag to \"$1\""
 	fi
-	echo "Changes will only take effect after server is restarted."
+	printf '%b\n' "Changes will only take effect after server is restarted."
 }
 
 overviewer_start() {
@@ -547,10 +537,10 @@ overviewer_start() {
 		then
 				if [ ! "$OVPATH" == "apt" ]
 				then
-						echo "Minecraft-Overviewer is not installed in \"$OVPATH\""
+						printf '%b\n' "Minecraft-Overviewer is not installed in \"$OVPATH\""
 						exit 1
 				else
-						echo "Using APT repository installed Minecraft-Overviewer"
+						printf '%b\n' "Using APT repository installed Minecraft-Overviewer"
 				fi
 		fi
 		if [ ! -e $OUTPUTMAP ]
@@ -559,28 +549,28 @@ overviewer_start() {
 		fi
 		if [ -e $OVCONFIGPATH/$OVCONFIGNAME ]
 		then
-				echo "Start generating map with Minecraft-Overviewer..."
+				printf '%b\n' "Start generating map with Minecraft-Overviewer..."
 				if [ "$OVPATH" == "apt" ]
 				then
 						as_user "overviewer.py --config=$OVCONFIGPATH/$OVCONFIGNAME"
 				else
 						as_user "python $OVPATH/overviewer.py --config=$OVCONFIGPATH/$OVCONFIGNAME"
 				fi
-				echo "Map generated."
+				printf '%b\n' "Map generated."
 		else
-				echo "No config file found. Start with default config..."
+				printf '%b\n' "No config file found. Start with default config..."
 				if [ -z $1 ] || [ ! -e $OVBACKUP/$1 ]
 				then
-						echo "World \"$1\" not found."
+						printf '%b\n' "World \"$1\" not found."
 				else
-						echo "Start generating map with Minecraft-Overviewer..."
+						printf '%b\n' "Start generating map with Minecraft-Overviewer..."
 						if [ "$OVPATH" == "apt" ]
 						then
 								as_user "nice overviewer.py $OVBACKUP/$1 $OUTPUTMAP"
 						else
 								as_user "nice python $OVPATH/overviewer.py $OVBACKUP/$1 $OUTPUTMAP"
 						fi
-						echo "Map generated."
+						printf '%b\n' "Map generated."
 				fi
 		fi
 }
@@ -593,7 +583,7 @@ overviewer_copy_worlds() {
 	get_worlds
 	for INDEX in ${!WORLDNAME[@]}
 	do
-		echo "Copying minecraft ${WORLDNAME[$INDEX]}."
+		printf '%b\n' "Copying minecraft ${WORLDNAME[$INDEX]}."
 		as_user "mkdir -p $OVBACKUP"
 		as_user "rsync -rt --delete $WORLDSTORAGE/${WORLDNAME[$INDEX]} $OVBACKUP/${WORLDNAME[$INDEX]}"
 	done
@@ -604,22 +594,19 @@ whitelist() {
 	sleep 1s
 	whitelist=$(tac $SERVERLOG | grep -m 1 "White-listed players:")
 
-	echo
-	echo "Currently there are the following players on your whitelist:"
-	echo
-	echo ${whitelist:49} | sed 's/, /\n/g'
+	printf '%b\n' "\nCurrently there are the following players on your whitelist:\n"
+	sed 's/, /\n/g' < "${whitelist:49}"
 }
 
 force_exit() {  # Kill the server running (messily) in an emergency
-	echo ""
-	echo "SIGINIT CALLED - FORCE EXITING!"
+	printf '%b\n' "SIGINIT CALLED - FORCE EXITING!"
 	pidfile=${MCPATH}/${SCREEN}.pid
 	rm $pidfile
 	echo "KILLING SERVER PROCESSES!!!"
 		# Display which processes are being killed
 		ps aux | grep -e 'java -Xmx' | grep -v grep | awk '{print $2}' | xargs -i echo "Killing PID: " {}
-		ps aux | grep -e 'SCREEN -dmS minecraft java' | grep -v grep | awk '{print $2}' | xargs -i echo "Killing PID: " {}
-		ps aux | grep -e '/etc/init.d/minecraft' | grep -v grep | awk '{print $2}' | xargs -i echo "Killing PID: " {}
+		ps aux | grep -e 'SCREEN -dmS minecraft java' | grep -v grep | awk '{print $2}' | xargs -i printf '%b\n' Killing PID: " {}
+		ps aux | grep -e '/etc/init.d/minecraft' | grep -v grep | awk '{print $2}' | xargs -i printf '%b\n' Killing PID: " {}
 
 		# Kill the processes
 		ps aux | grep -e 'java -Xmx' | grep -v grep | awk '{print $2}' | xargs -i kill {}
@@ -630,13 +617,13 @@ force_exit() {  # Kill the server running (messily) in an emergency
 }
 
 get_script_location() {
-	echo $(dirname "$(readlink -e "$0")")
+	dirname "$(readlink -e "$0")"
 }
 
 check_permissions() {
 	as_user "touch $pidfile"
 	if ! as_user "test -w '$pidfile'" ; then
-		echo "Check Permissions. Cannot write to $pidfile. Correct the permissions and then excute: $0 status"
+		printf '%b\n' "Check Permissions. Cannot write to $pidfile. Correct the permissions and then excute: $0 status"
 	fi
 }
 
@@ -646,7 +633,7 @@ case "$1" in
 	start)
 		# Starts the server
 		if is_running; then
-			echo "Server already running."
+			printf '%b\n' Server already running."
 		else
 			check_links
 			to_ram
@@ -660,7 +647,7 @@ case "$1" in
 			mc_stop
 			to_disk
 		else
-			echo "No running server."
+			printf '%b\n' No running server."
 		fi
 		;;
 	restart)
@@ -670,7 +657,7 @@ case "$1" in
 			mc_stop
 			to_disk
 		else
-			echo "No running server, starting it..."
+			printf '%b\n' No running server, starting it..."
 		fi
 		check_links
 		to_ram
@@ -682,14 +669,14 @@ case "$1" in
                         mc_say "Reloading server configuration.."
                         mc_reload
                 else
-                        echo "No running server."
+                        printf '%b\n' No running server."
                 fi
                 ;;
 	whitelist)
 		if is_running; then
 			whitelist
 		else
-			echo "Server not running."
+			printf '%b\n' Server not running."
 		fi
 		;;
 	whitelist-reload)
@@ -697,7 +684,7 @@ case "$1" in
 		if is_running; then
 			mc_command "whitelist reload"
 		else
-			echo "No running server."
+			printf '%b\n' No running server."
 		fi
 		;;
 	whitelist-add)
@@ -705,7 +692,7 @@ case "$1" in
 		if is_running; then
 			mc_command "whitelist add $2"
 		else
-			echo "No running server."
+			printf '%b\n' No running server."
 		fi
 		;;
 	backup)
@@ -724,7 +711,7 @@ case "$1" in
 	whole-backup)
 		# Backup everything
 		if is_running; then
-			mc_say "COMPLETE SERVER BACKUP IN 10 SECONDS.";
+			mc_say "COMPLETE SERVER BACKUP IN 10 SECONDS."
 			mc_say "WARNING: WILL RESTART SERVER SOFTWARE!"
 			mc_stop
 			to_disk
@@ -738,7 +725,7 @@ case "$1" in
 	check-update)
 		check_update_vanilla
 		check_update_spigot
-		as_user "rm $MCPATH/minecraft_server.jar.update"
+		as_user "rm "$MCPATH/minecraft_server.jar.update""
 		;;
 	update)
 		#update minecraft_server.jar and and spigot.jar (thanks karrth)
@@ -768,7 +755,7 @@ case "$1" in
 		if is_running; then
 			mc_saveoff
 		else
-			echo "Server was not running, syncing from ram anyway..."
+			printf '%b\n' Server was not running, syncing from ram anyway..."
 		fi
 		to_disk
 		;;
@@ -779,7 +766,7 @@ case "$1" in
 			mc_saveon
 			mc_reload
 		else
-			echo "Server is not running."
+			printf '%b\n' Server is not running."
 		fi
 		;;
 	save-on)
@@ -787,7 +774,7 @@ case "$1" in
 		if is_running; then
 			mc_saveon
 		else
-			echo "No running server."
+			printf '%b\n' No running server."
 		fi
 		;;
 	say)
@@ -796,16 +783,16 @@ case "$1" in
 			shift 1
 			mc_say "$*"
 		else
-			echo "No running server to say anything."
+			printf '%b\n' "No running server to say anything."
 		fi
 		;;
 	command)
 		if is_running; then
 			shift 1
 			mc_command "$*"
-			echo "Sent command: $*"
+			printf '%b\n' "Sent command: $*"
 		else
-			echo "No running server to send a command to."
+			printf '%b\n' "No running server to send a command to."
 		fi
 		;;
 	connected)
@@ -815,7 +802,7 @@ case "$1" in
 			sleep 1s
 			# Get server log in reverse order, assume that response to 'list'
 			# command is already there.
-			tac $SERVERLOG | \
+			tac "$SERVERLOG" | \
 				# Extract two lines. 1) containing ASCII color code and comma-separated list
 				# of  player names and 2) the line saying "[...] players online:"
 				grep --before-context 1 --max-count 1 "players online" | \
@@ -829,7 +816,7 @@ case "$1" in
 				# Replace ", " separator with newline char.
 				sed 's/, /\n/g'
 		else
-			echo "No running server."
+			printf '%b\n' "No running server."
 		fi
 		;;
 	playercount)
@@ -838,11 +825,11 @@ case "$1" in
 			mc_command list
 			sleep 1s
 			# Same as technique as 'connected' command, but count lines.
-			tac $SERVERLOG | \
+			tac "$SERVERLOG" | \
 				grep --before-context 1 --max-count 1 "players online" | \
 				head -n 1 | sed 's/[\x01-\x1F\x7F]..//g' | grep . | sed 's/, /\n/g' | wc -l
 		else
-			echo "No running server."
+			printf '%b\n' "No running server."
 		fi
 		;;
 	log-roll)
@@ -850,45 +837,45 @@ case "$1" in
 		;;
 	log)
 		# Display server log using 'cat'.
-		cat $SERVERLOG
+		cat "$SERVERLOG"
 		;;
 	last)
 		# Greps for recently logged in users
-		echo Recently logged in users:
-		cat $SERVERLOG | awk '/entity|conn/ {sub(/lost/,"disconnected");print $1,$2,$4,$5}'
+		printf '%b\n' "Recently logged in users:"
+		awk '/entity|conn/ {sub(/lost/,"disconnected");print $1,$2,$4,$5}' "$SERVERLOG"
 		;;
 	status)
 		# Shows server status
 		if is_running
 		then
-			echo "$SERVICE is running."
+			printf '%b\n' "$SERVICE is running."
 		else
-			echo "$SERVICE is not running."
+			printf '%b\n' "$SERVICE is not running."
 		fi
 		;;
 	version)
 		if is_running; then
 			mc_command version
-			tac $SERVERLOG | grep -m 1 "This server is running"
+			tac "$SERVERLOG" | grep -m 1 "This server is running"
 		else
-			echo "The server needs to be running to check version."
+			printf '%b\n' "The server needs to be running to check version."
 		fi
 		;;
 	links)
 		check_links
 		;;
 	ramdisk)
-		change_ramdisk_state $2
+		change_ramdisk_state "$2"
 		;;
 	worlds)
 		get_worlds
-		for INDEX in ${!WORLDNAME[@]}
+		for INDEX in "${!WORLDNAME[@]}"
 		do
-			if ${WORLDRAM[$INDEX]}
+			if "${WORLDRAM[$INDEX]}"
 			then
-				echo "${WORLDNAME[$INDEX]} (ramdisk)"
+				printf '%b\n' "${WORLDNAME[$INDEX]} (ramdisk)"
 			else
-				echo ${WORLDNAME[$INDEX]}
+				echo "${WORLDNAME[$INDEX]}"
 			fi
 		done
 		;;
@@ -937,23 +924,23 @@ case "$1" in
 		fi
 		;;
 	kill)
-		WIDTH=$(stty size | cut -d ' ' -f 2)            # Get terminal's character width
-		pstree | grep MDSImporte | cut -c 1-${WIDTH}   # Chop output after WIDTH chars
+		WIDTH=$(stty size | cut -d ' ' -f 2)		# Get terminal's character width
+		pstree | grep MDSImporte | cut -c 1-"${WIDTH}"	# Chop output after WIDTH chars
 
 		echo "Killing the server is an EMERGENCY procedure, and should not be used to perform a normal shutdown! All changes younger than 15 minutes could be permanantly lost and WORLD CORRUPTION is possible! Are you ABSOLUTELY POSITIVE this is what you want to do?"
 		echo "Please put \"Yes\", or \"No\": "
 		read KILL_SERVER
-		case "$KILL_SERVER" in  # Determine which option was specified
-			[Yy]|[Yy][Ee][Ss])      # If yes, kill the server
+		case "$KILL_SERVER" in		# Determine which option was specified
+			[Yy]|[Yy][Ee][Ss])	# If yes, kill the server
 				echo "KILLING SERVER PROCESSES!!!"
-				force_exit
+				force_exit "$@"
 				exit 1
 				;;
-			[Nn]|[Nn][Oo])  # If no, abort and exit 1
+			[Nn]|[Nn][Oo])		# If no, abort and exit 1
 				echo "Aborting!"
 				exit 1
 				;;
-			*)      # If anything else, exit 1
+			*)			# If anything else, exit 1 
 				echo "Error: Invalid Input!"
 				exit 1
 				;;
