@@ -216,7 +216,7 @@ mc_say() {
 	if is_running
 	then
 		echo "Said: $1"
-		mc_command "say $1"
+		mc_command "$BROADCAST_COMMAND $1"
 	else
 		echo "$SERVICE was not running. Not able to say anything."
 	fi
@@ -496,7 +496,6 @@ check_update_vanilla() {
 
 check_update_spigot() {
   as_user "cd $MCPATH && wget -q -O $MCPATH/BuildTools/BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar"
-  as_user "cd $MCPATH && java -jar $MCPATH/BuildTools/BuildTools.jar"
 }
 
 mc_update() {
@@ -520,6 +519,7 @@ mc_update() {
 
 		if check_update_spigot
 		then
+			as_user "cd $MCPATH && java -jar $MCPATH/BuildTools/BuildTools.jar"
 			as_user "mv $MCPATH/BuildTools/Spigot/Spigot-Server/target/spigot-*.jar $SP_JAR"
 			echo "That's it. Update of $SP_JAR done."
 		fi
@@ -743,17 +743,17 @@ case "$1" in
 		as_user "rm $MCPATH/minecraft_server.jar.update"
 		;;
 	update)
-		#update minecraft_server.jar, craftbukkit.jar, and spigot.jar (thanks karrth)
+		#update minecraft_server.jar and and spigot.jar (thanks karrth)
 		if is_running; then
 			mc_say "SERVER UPDATE IN 10 SECONDS."
 			mc_stop
 			to_disk
-			mc_whole_backup
+			#mc_whole_backup
 			mc_update
 			check_links
 			mc_start
 		else
-			mc_whole_backup
+			#mc_whole_backup
 			mc_update
 		fi
 		;;
