@@ -10,7 +10,7 @@
 # Default-Start:  2 3 4 5
 # Default-Stop:   0 1 6
 # Short-Description:    Minecraft server
-# Description:    Init script for minecraft/bukkit server, with rolling logs and use of ramdisk for less lag.
+# Description:    Init script for Bukkit & Spigot server software
 ### END INIT INFO
 
 # Created by Ahtenus
@@ -19,41 +19,30 @@
 # Support for multiworld by Benni-chan
 # Log rolls without needing restarts by Solorvox
 # Option for killing server in an emergency by jbondhus
-# Spigot support by alfonsojon
+# Extensive modification by alfonsojon
 
 # OS X doesn't support init.d scripts, so let's prevent running on OS X.
-if [ "$(uname)" == "Darwin" ]; then
+if [[ "$(uname)" == "Darwin" ]]; then
 	echo "OS X is not supported."
 	exit 1
 fi
 
 # Loads config file
 
-if [ -L "$0" ]; then
+if [[ -L "$0" ]]; then
 	source $(readlink -e "$0" | sed "s:[^/]*$:config:")
 else
 	source $(echo "$0" | sed "s:[^/]*$:config:")
 fi
 
-if [ "$SERVICE" == "" ]; then
+[[ "$SERVICE" == "" ]] && {
 	echo "Couldn't load config file, please edit config.example and rename it to config"
 	logger -t minecraft-init "Couldn't load config file, please edit config.example and rename it to config"
 	exit
-fi
-
-# Defines $SERVERLOG depending on the Minecraft version used.
-# Minecraft 1.6 and under use "$MCPATH/server.log", whereas Minecraft 1.7 and up use "$MCPATH/logs/latest.log".
-if [ -e "$MCPATH"/logs/latest.log ]; then
-	SERVERLOG="$MCPATH/logs/latest.log"
-else
-	SERVERLOG="$MCPATH/server.log"
-fi
-
-
-
+}
 
 as_user() {
-	if [ $(whoami) == "$USERNAME" ]; then
+	if [[ $(whoami) == "$USERNAME" ]]; then
 		bash -c "$1"
 	else
 		su "$USERNAME" -s "/usr/bin/env bash -c" "$1"
@@ -65,12 +54,12 @@ is_running() {
 	# returns true if it exists.
 	pidfile="${MCPATH}"/"${SCREEN}".pid
 
-	if [ -f "$pidfile" ]; then
+	if [[ -f "$pidfile" ]]; then
 		pid=$(head -1 "$pidfile")
 		if ps ax | grep -v grep | grep ${pid} | grep "${SCREEN}" > /dev/null; then
 			return 0
 		else
-			if [ -z "$isInStop" ]; then
+			if [[ -z "$isInStop" ]]; then
 				if [ -z "$roguePrinted" ]; then
 					roguePrinted=1
 					echo "Rogue pidfile found!"
@@ -102,7 +91,7 @@ datepath() {
 	# $2 file ending to check for uniqueness
 	# $3 file ending to return
 
-	if [ -e $1$(date +%F)$2 ]; then
+	if [[ -e $1$(date +%F)$2 ]]; then
 		echo $1$(date +%FT%T)$3
 	else
 		printf '%b\n' $1$(date +%F)$3
@@ -111,14 +100,13 @@ datepath() {
 
 mc_start() {
 	servicejar="$MCPATH"/"$SERVICE"
-	if [ ! -f "$servicejar" ]; then
+	if [[ ! -f "$servicejar" ]]; then
 		printf '%b\n' "Failed to start: Can't find the specified Minecraft jar under $servicejar. Please check your config!"
 		exit 1
 	fi
 
 	pidfile="${MCPATH}"/"${SCREEN}".pid
 	check_permissions
-
 	as_user "cd $MCPATH && screen -dmS $SCREEN $INVOCATION"
 	as_user "screen -list | grep "\.$SCREEN" | cut -f1 -d'.' | head -n 1 | tr -d -c 0-9 > $pidfile"
 
@@ -149,54 +137,6 @@ mc_command() {
 			as_user "screen -p 0 -S $SCREEN -X eval 'stuff \"$(eval echo $FORMAT)\"\015'"
 	else
 			printf '%b\n' "$SERVICE was not running. Not able to run command."
-	fi
-}
-
-mc_reload() {
-	if is_running
-		then
-		if [[ $SERVICE != $MC_JAR ]]
-		then
-			printf '%b\n' "Reloading the server configuration is not recommended and can cause some problems."
-			printf '%b\n' "Are you sure you would like to reload the server configuration? (y/N)"
-			read input
-			if [[ $input == "Y" || $input == "y" ]]
-			then
-				echo "$SERVICE is running... reloading server configuration."
-				mc_say "Reloading Plugins..."
-				mc_command reload
-				mc_say "Reload Complete."
-			else
-				echo "Cancelled."
-			fi
-		else
-			echo "Reload not supported by $SERVICE. Not able to run command."
-		fi
-	else
-		echo "$SERVICE is not running."
-	fi
-}
-
-mc_saveoff() {
-	if is_running
-	then
-		echo "$SERVICE is running... suspending saves"
-		mc_command save-off
-		mc_command save-all
-		sync
-		sleep 10
-	else
-		echo "$SERVICE was not running. Not suspending saves."
-	fi
-}
-
-mc_saveon() {
-	if is_running
-	then
-		echo "$SERVICE is running... re-enabling saves"
-		mc_command save-on
-	else
-		echo "$SERVICE was not running. Not resuming saves."
 	fi
 }
 
@@ -275,44 +215,6 @@ check_backup_settings() {
 	esac
 }
 
-log_roll() {
-	# MC 1.7 introduced automatic log rolling, making this redundant for 1.7+ servers.
-	if [ ! -f $MCPATH/logs/latest.log ]; then
-		# Moves the logfiles and compresses that backup directory
-		check_backup_settings
-		path=$(datepath $LOGPATH/logs_ $ARCHIVEENDING)
-		as_user "mkdir -p $path"
-
-		shopt -s extglob
-		for FILE in $(ls $MCPATH/*.log)
-		do
-			as_user "cp $FILE $path"
-			# only if previous command was successful
-			if [ $? -eq 0 ]; then
-				if [[ "$FILE" = @(*-+([0-9]).log) && "$FILE" = !(*-0.log) ]]
-				# some mods already roll logs. remove all but the most recent file
-				# which ends with -0.log
-				then
-					as_user "rm $FILE"
-				else
-				# truncate the existing log without restarting server
-					as_user "cp /dev/null $FILE"
-					as_user "echo \"Previous logs rolled to $path\" > $FILE"
-				fi
-			else
-				echo "Failed to rotate log from $FILE into $path"
-			fi
-		done
-
-		as_user "$COMPRESSCMD $path$ARCHIVEENDING $path"
-		if [ $? -eq 0 ]; then
-			as_user "rm -r $path"
-		fi
-	else
-		echo "Logs are already rolled to \"$MCPATH/logs\"."
-	fi
-}
-
 get_worlds() {
 	SAVEIFS=$IFS
 	IFS=$(echo -en "\n\b")
@@ -323,12 +225,6 @@ get_worlds() {
 		if [ -d $WORLDSTORAGE/$NAME ]
 		then
 			WORLDNAME[$a]=$NAME
-			if [ -e $WORLDSTORAGE/$NAME/ramdisk ]
-			then
-				WORLDRAM[$a]=true
-			else
-				WORLDRAM[$a]=false
-			fi
 			a=$a+1
 		fi
 	done
@@ -433,34 +329,6 @@ check_links() {
 	done
 }
 
-to_ram() {
-	get_worlds
-	for INDEX in ${!WORLDNAME[@]}
-	do
-		if ${WORLDRAM[$INDEX]}
-		then
-			if [ -L $MCPATH/${WORLDNAME[$INDEX]} ]
-			then
-				as_user "mkdir -p $RAMDISK"
-				as_user "rsync -rt --exclude 'ramdisk' ${WORLDSTORAGE}/${WORLDNAME[$INDEX]}/ $RAMDISK/${WORLDNAME[$INDEX]}"
-				printf '%b\n' "${WORLDNAME[$INDEX]} copied to ram"
-			fi
-		fi
-	done
-}
-
-to_disk() {
-	get_worlds
-	for INDEX in ${!WORLDNAME[@]}
-	do
-		if ${WORLDRAM[$INDEX]}
-		then
-			as_user "rsync -rt --exclude 'ramdisk' $MCPATH/${WORLDNAME[$INDEX]}/ ${WORLDSTORAGE}/${WORLDNAME[$INDEX]}"
-			printf '%b\n' "${WORLDNAME[$INDEX]} copied to disk"
-		fi
-	done
-}
-
 check_update_vanilla() {
 	MC_SERVER_URL=$(wget -q -O - http://minecraft.net/download | grep minecraft_server.jar\ | cut -d \" -f 6)
 
@@ -482,8 +350,25 @@ check_update_vanilla() {
 	fi
 }
 
-check_update_spigot() {
-  as_user "cd $MCPATH && wget -q -O $MCPATH/BuildTools/BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar"
+check_update_buildtools() {
+	BUILDTOOLS_URL=https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
+
+	printf '%b\n' "Checking for update for Spigot BuildTools"
+	as_user "cd $BTPATH && wget -q -O $BTPATH/BuildTools.jar.update $BUILDTOOLS_URL"
+
+	if [ -r "$MCPATH/minecraft_server.jar.update" ]
+	then
+		if $(diff $MCPATH/$MC_JAR $MCPATH/minecraft_server.jar.update >/dev/null)
+		then
+			printf '%b\n' "You are alreadyhave the latest version of BuildTools ."
+			return 1
+		else
+			printf '%b\n' "Update of $BT_JAR is needed."
+			return 0
+		fi
+	else
+		printf '%b\n' "Something went wrong. Couldn't download BuildTools.jar"
+	fi
 }
 
 mc_update() {
@@ -496,106 +381,29 @@ mc_update() {
 			if [ -r "$MCPATH/minecraft_server.jar.update" ]
 			then
 				as_user "mv $MCPATH/minecraft_server.jar.update $MCPATH/$MC_JAR"
-				printf '%b\n' "Thats it. Update of $MC_JAR done."
+				printf '%b\n' "Update of $MC_JAR done."
 			else
-				printf '%b\n' "Something went wrong. Couldn't replace your original $MC_JAR with minecraft_server.jar.update"
+				printf '%b\n' "An error occurred while updating $MC_JAR."
 			fi
 		else
-			printf '%b\n' "Not updating $MC_JAR. It's not necessary"
+			printf '%b\n' "$MC_JAR is up to date."
 			as_user "rm $MCPATH/minecraft_server.jar.update"
 		fi
 
-		if check_update_spigot
+		if check_update_buildtools
 		then
-			as_user "cd $MCPATH && java -jar $MCPATH/BuildTools/BuildTools.jar"
-			as_user "mv $MCPATH/BuildTools/Spigot/Spigot-Server/target/spigot-*.jar $SP_JAR"
-			printf '%b\n' "That's it. Update of $SP_JAR done."
-		fi
-	fi
-}
-
-change_ramdisk_state() {
-	if [ ! -e $WORLDSTORAGE/$1 ]
-	then
-		printf '%b\n' "World \"$1\" not found."
-		exit 1
-	fi
-
-	if [ -e $WORLDSTORAGE/$1/ramdisk ]
-	then
-		rm $WORLDSTORAGE/$1/ramdisk
-		printf '%b\n' "Removed ramdisk flag from \"$1\""
-	else
-		touch $WORLDSTORAGE/$1/ramdisk
-		printf '%b\n' "Added ramdisk flag to \"$1\""
-	fi
-	printf '%b\n' "Changes will only take effect after server is restarted."
-}
-
-overviewer_start() {
-		if [ ! -e $OVPATH/overviewer.py ]
-		then
-				if [ ! "$OVPATH" == "apt" ]
-				then
-						printf '%b\n' "Minecraft-Overviewer is not installed in \"$OVPATH\""
-						exit 1
-				else
-						printf '%b\n' "Using APT repository installed Minecraft-Overviewer"
-				fi
-		fi
-		if [ ! -e $OUTPUTMAP ]
-		then
-				as_user "mkdir -p $OUTPUTMAP"
-		fi
-		if [ -e $OVCONFIGPATH/$OVCONFIGNAME ]
-		then
-				printf '%b\n' "Start generating map with Minecraft-Overviewer..."
-				if [ "$OVPATH" == "apt" ]
-				then
-						as_user "overviewer.py --config=$OVCONFIGPATH/$OVCONFIGNAME"
-				else
-						as_user "python $OVPATH/overviewer.py --config=$OVCONFIGPATH/$OVCONFIGNAME"
-				fi
-				printf '%b\n' "Map generated."
+			if [ -r "$BTPATH/BuildTools.jar.update" ]
+			then
+				as_user "mv $BTPATH/BuildTools.jar.update $BTPATH/BuildTools.jar"
+				printf '%b\n' "Update of BuildTools.jar done."
+			else
+				printf '%b\n' "Could not update BuildTools.jar"
+			fi
 		else
-				printf '%b\n' "No config file found. Start with default config..."
-				if [ -z $1 ] || [ ! -e $OVBACKUP/$1 ]
-				then
-						printf '%b\n' "World \"$1\" not found."
-				else
-						printf '%b\n' "Start generating map with Minecraft-Overviewer..."
-						if [ "$OVPATH" == "apt" ]
-						then
-								as_user "nice overviewer.py $OVBACKUP/$1 $OUTPUTMAP"
-						else
-								as_user "nice python $OVPATH/overviewer.py $OVBACKUP/$1 $OUTPUTMAP"
-						fi
-						printf '%b\n' "Map generated."
-				fi
+			printf '%b\n' "BuildTools.jar is up to date."
+			as_user "rm $MCPATH/minecraft_server.jar.update"
 		fi
-}
-
-overviewer_copy_worlds() {
-	#
-	# Backup the worlds for overviewer
-	#
-
-	get_worlds
-	for INDEX in ${!WORLDNAME[@]}
-	do
-		printf '%b\n' "Copying minecraft ${WORLDNAME[$INDEX]}."
-		as_user "mkdir -p $OVBACKUP"
-		as_user "rsync -rt --delete $WORLDSTORAGE/${WORLDNAME[$INDEX]} $OVBACKUP/${WORLDNAME[$INDEX]}"
-	done
-}
-
-whitelist() {
-	mc_command "whitelist list"
-	sleep 1s
-	whitelist=$(tac $SERVERLOG | grep -m 1 "White-listed players:")
-
-	printf '%b\n' "\nCurrently there are the following players on your whitelist:\n"
-	sed 's/, /\n/g' < "${whitelist:49}"
+	fi
 }
 
 force_exit() {  # Kill the server running (messily) in an emergency
@@ -636,7 +444,6 @@ case "$1" in
 			printf '%b\n' Server already running."
 		else
 			check_links
-			to_ram
 			mc_start
 		fi
 		;;
@@ -645,7 +452,6 @@ case "$1" in
 		if is_running; then
 			mc_say "SERVER SHUTTING DOWN!"
 			mc_stop
-			to_disk
 		else
 			printf '%b\n' No running server."
 		fi
@@ -655,54 +461,17 @@ case "$1" in
 		if is_running; then
 			mc_say "SERVER REBOOT IN 10 SECONDS!"
 			mc_stop
-			to_disk
 		else
-			printf '%b\n' No running server, starting it..."
+			printf '%b\n' "No running server, starting it..."
 		fi
 		check_links
-		to_ram
 		mc_start
-		;;
-        reload)
-                # Reloads server configuration
-                if is_running; then
-                        mc_say "Reloading server configuration.."
-                        mc_reload
-                else
-                        printf '%b\n' No running server."
-                fi
-                ;;
-	whitelist)
-		if is_running; then
-			whitelist
-		else
-			printf '%b\n' Server not running."
-		fi
-		;;
-	whitelist-reload)
-		# Reloads the whitelist
-		if is_running; then
-			mc_command "whitelist reload"
-		else
-			printf '%b\n' No running server."
-		fi
-		;;
-	whitelist-add)
-		# Adds a player to the whitelist
-		if is_running; then
-			mc_command "whitelist add $2"
-		else
-			printf '%b\n' No running server."
-		fi
 		;;
 	backup)
 		# Backups world
 		if is_running; then
 			mc_say "Backing up world."
-			mc_saveoff
-			to_disk
 			mc_world_backup
-			mc_saveon
 			mc_say "Backup complete."
 		else
 			mc_world_backup
@@ -714,7 +483,6 @@ case "$1" in
 			mc_say "COMPLETE SERVER BACKUP IN 10 SECONDS."
 			mc_say "WARNING: WILL RESTART SERVER SOFTWARE!"
 			mc_stop
-			to_disk
 			mc_whole_backup
 			check_links
 			mc_start
@@ -724,7 +492,9 @@ case "$1" in
 		;;
 	check-update)
 		check_update_vanilla
+		check_update_buildtools
 		check_update_spigot
+		check_update_bukkit
 		as_user "rm "$MCPATH/minecraft_server.jar.update""
 		;;
 	update)
@@ -732,49 +502,11 @@ case "$1" in
 		if is_running; then
 			mc_say "SERVER UPDATE IN 10 SECONDS."
 			mc_stop
-			to_disk
-			#mc_whole_backup
 			mc_update
 			check_links
 			mc_start
 		else
-			#mc_whole_backup
 			mc_update
-		fi
-		;;
-	to-disk)
-		# Writes from the ramdisk to disk, in case the server crashes.
-		mc_saveoff
-		to_disk
-		mc_saveon
-		;;
-	save-off)
-		# Flushes the state of the world to disk, and then disables
-		# saving until save-on is called (useful if you have your own
-		# backup scripts).
-		if is_running; then
-			mc_saveoff
-		else
-			printf '%b\n' Server was not running, syncing from ram anyway..."
-		fi
-		to_disk
-		;;
-	reload)
-		if is_running; then
-			mc_saveoff
-			to_disk
-			mc_saveon
-			mc_reload
-		else
-			printf '%b\n' Server is not running."
-		fi
-		;;
-	save-on)
-		# Re-enables saving if it was disabled by save-off.
-		if is_running; then
-			mc_saveon
-		else
-			printf '%b\n' No running server."
 		fi
 		;;
 	say)
@@ -819,22 +551,6 @@ case "$1" in
 			printf '%b\n' "No running server."
 		fi
 		;;
-	playercount)
-		# List number of connected users.
-		if is_running; then
-			mc_command list
-			sleep 1s
-			# Same as technique as 'connected' command, but count lines.
-			tac "$SERVERLOG" | \
-				grep --before-context 1 --max-count 1 "players online" | \
-				head -n 1 | sed 's/[\x01-\x1F\x7F]..//g' | grep . | sed 's/, /\n/g' | wc -l
-		else
-			printf '%b\n' "No running server."
-		fi
-		;;
-	log-roll)
-		log_roll
-		;;
 	log)
 		# Display server log using 'cat'.
 		cat "$SERVERLOG"
@@ -864,9 +580,6 @@ case "$1" in
 	links)
 		check_links
 		;;
-	ramdisk)
-		change_ramdisk_state "$2"
-		;;
 	worlds)
 		get_worlds
 		for INDEX in "${!WORLDNAME[@]}"
@@ -879,19 +592,6 @@ case "$1" in
 			fi
 		done
 		;;
-	overviewer)
-		if is_running; then
-			mc_say "Generating overviewer map."
-			mc_saveoff
-			to_disk
-			overviewer_copy_worlds
-			mc_saveon
-			overviewer_start "$2"
-		else
-			overviewer_copy_worlds
-			overviewer_start "$2"
-		fi
-		;;
 	screen)
 		if is_running; then
 			as_user "script /dev/null -q -c \"screen -rx $SCREEN\""
@@ -902,7 +602,6 @@ case "$1" in
 		case "$START_SERVER" in
 			[Yy]|[Yy][Ee][Ss])
 				check_links
-				to_ram
 				mc_start
 				as_user "script /dev/null -q -c \"screen -rx $SCREEN\""
 				;;
@@ -954,29 +653,16 @@ case "$1" in
 		echo -e "   stop \t\t Stops the server"
 		echo -e "   kill \t\t Kills the server"
 		echo -e "   restart \t\t Restarts the server"
-		echo -e "   reload \t\t Reloads the server configuration"
 		echo -e "   backup \t\t Backups the worlds defined in the script"
 		echo -e "   whole-backup \t Backups the entire server folder"
 		echo -e "   check-update \t Checks for updates of $SP_JAR, and $MC_JAR"
 		echo -e "   update \t\t Fetches the latest version of the Minecraft and Spigot server."
-		echo -e "   log-roll \t\t Moves and compresses the logfiles"
 		echo -e "   log \t\t\t Prints the server log"
-		echo -e "   to-disk \t\t Copies the worlds from the ramdisk to worldstorage"
-		echo -e "   save-off \t\t Flushes the world to disk and then disables saving"
-		echo -e "   save-on \t\t Re-enables saving if it was previously disabled by save-off"
 		echo -e "   say \t\t\t Prints the given string to the ingame chat"
-		echo -e "   connected \t\t Lists connected users"
-		echo -e "   playercount \t\t Prints the number of connected users"
 		echo -e "   status \t\t Displays server status"
 		echo -e "   version \t\t Displays Bukkit version and then exits"
 		echo -e "   links \t\t Creates nessesary symlinks"
-		echo -e "   last \t\t Displays recently connected users"
 		echo -e "   worlds \t\t Displays a list of available worlds"
-		echo -e "   ramdisk WORLD \t Toggles ramdisk configuration for WORLD"
-		echo -e "   overviewer WORLD \t Creates a map of the WORLD with Minecraft-Overviewer"
-		echo -e "   whitelist \t\t Prints the current whitelist"
-		echo -e "   whitelist-add NAME \t Adds the specified player to the server whitelist"
-		echo -e "   whitelist-reload \t Reloads the whitelist"
 		echo -e "   screen \t\t Shows the server screen"
 		;;
 	*)
