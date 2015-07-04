@@ -237,7 +237,7 @@ check_update_vanilla() {
 
 	if [ -r "$MCPATH/minecraft_server.jar.update" ]
 	then
-		if $(diff "$MCPATH"/"$MC_JAR $MCPATH"/minecraft_server.jar.update >/dev/null)
+		if $(diff "$MCPATH/$MC_JAR $MCPATH/minecraft_server.jar.update" >/dev/null)
 		then
 			printf '%b\n' "You are already running the latest version of minecraft_server.jar."
 			return 1

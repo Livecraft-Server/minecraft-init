@@ -20,7 +20,7 @@ MC_REV="latest"
 SERVICE=$SP_JAR
 
 # Name to use for the screen instance
-SCREEN="server_screen"
+SCREEN="minecraft"
 
 # User that should run the server
 USERNAME="minecraft"
@@ -38,7 +38,7 @@ BROADCAST_COMMAND="say"
 CPU_COUNT=2
 
 # Initial memory usage
-INITMEM="2048M"
+INITMEM="512M"
 
 # Maximum amount of memory to use
 # Remember: give the ramdisk enough space, subtract from the total amount
@@ -51,11 +51,8 @@ FORMAT='$1'
 # Settings for backups
 # ==================================
 
-# Location for world backups
-BACKUPPATH="/home/${USERNAME}/mcbackup/worlds"
-
-# Where the whole minecraft directory is copied when whole-backup is executed
-# whole-backup is a complete uncompressed backup of the whole server folder.
+# Where the whole minecraft directory is copied when the backup is executed
+# The backup is a complete, uncompressed backup of the entire server folder.
 WHOLEBACKUP="/home/${USERNAME}/mcbackup/server"
 
 # Format for world backup (tar or zip).
@@ -69,11 +66,6 @@ BACKUPFORMAT="tar"
 # [backup rotation script](https://github.com/adamfeuer/rotate-backups)
 #
 BACKUPSCRIPTCOMPATIBLE=YES
-
-# If WORLDEDITCOMPATIBLE is set the world backups will be created compatible to WorldEdit
-# in $BACKUPPATH as WORLD_NAME/DATE.(tar.bz2|zip) with the requested directory structure
-#
-# WORLDEDITCOMPATIBLE=YES
 
 # Compress the whole backup with bzip2?
 # Note that this may not save a lot of disk space since there can be a lot of files
