@@ -21,7 +21,9 @@
 # Option for killing server in an emergency by jbondhus
 # Extensive modification by alfonsojon
 
-# OS X doesn't support init.d scripts, so let's prevent running on OS X.
+# OS X does not support init.d scripts; prevent running on OS X.
+# If you use a Darwin-based distribution with init.d support, commment the following four lines out.
+
 if [[ "$(uname)" == "Darwin" ]]; then
 	echo "OS X is not supported."
 	exit 1
@@ -29,11 +31,7 @@ fi
 
 # Loads config file
 
-if [[ -L "$0" ]]; then
-	source $(readlink -e "$0" | sed "s:[^/]*$:config:")
-else
-	source $(echo "$0" | sed "s:[^/]*$:config:")
-fi
+source $(dirname $(readlink -e $0))/config
 
 [[ "$SERVICE" == "" ]] && {
 	echo "Couldn't load config file, please edit config.example and rename it to config"
@@ -56,7 +54,7 @@ is_running() {
 
 	if [[ -f "$pidfile" ]]; then
 		pid=$(head -1 "$pidfile")
-		if ps ax | grep -v grep | grep ${pid} | grep "${SCREEN}" > /dev/null; then
+		if ps ax | grep -v grep | grep "${pid}" | grep "${SCREEN}" > /dev/null; then
 			return 0
 		else
 			if [[ -z "$isInStop" ]]; then
@@ -91,10 +89,10 @@ datepath() {
 	# $2 file ending to check for uniqueness
 	# $3 file ending to return
 
-	if [[ -e $1$(date +%F)$2 ]]; then
-		echo $1$(date +%FT%T)$3
+	if [[ -e "$1$(date +%F)$2" ]]; then
+		echo "$1$(date +%FT%T)$3"
 	else
-		printf '%b\n' $1$(date +%F)$3
+		printf '%b\n' "$1$(date +%F)$3"
 	fi
 }
 
@@ -108,7 +106,7 @@ mc_start() {
 	pidfile="${MCPATH}"/"${SCREEN}".pid
 	check_permissions
 	as_user "cd $MCPATH && screen -dmS $SCREEN $INVOCATION"
-	as_user "screen -list | grep "\.$SCREEN" | cut -f1 -d'.' | head -n 1 | tr -d -c 0-9 > $pidfile"
+	as_user "screen -list | grep \.$SCREEN | cut -f1 -d'.' | head -n 1 | tr -d -c 0-9 > $pidfile"
 
 	#
 	# Waiting for the server to start
@@ -187,11 +185,6 @@ mc_stop() {
 	echo "$SERVICE is now shut down."
 }
 
-mc_reload() {
-        echo "$SERVICE is running... reloading."
-        mc_command reload
-}
-
 check_backup_settings() {
 	case "$BACKUPFORMAT" in
 		tar)
@@ -254,7 +247,7 @@ mc_world_backup() {
 		as_user "rm -r $BACKUPPATH/*"
 	fi
 
-	for INDEX in ${!WORLDNAME[@]}
+	for INDEX in "${!WORLDNAME[@]}"
 	do
 		printf '%b\n' "Backing up minecraft ${WORLDNAME[$INDEX]}"
 		if [ "$WORLDEDITCOMPATIBLE" ]
@@ -281,36 +274,6 @@ mc_world_backup() {
 	done
 }
 
-check_links() {
-	get_worlds
-	for INDEX in ${!WORLDNAME[@]}
-	do
-		if [[ -L $MCPATH/${WORLDNAME[$INDEX]} || ! -a $MCPATH/${WORLDNAME[$INDEX]} ]]
-		then
-			link=$(ls -l $MCPATH/${WORLDNAME[$INDEX]} | awk '{print $11}')
-			if ${WORLDRAM[$INDEX]}
-			then
-				if [ "$link" != "$RAMDISK/${WORLDNAME[$INDEX]}" ]
-				then
-					as_user "rm -f $MCPATH/${WORLDNAME[$INDEX]}"
-					printf '%b\n' "Created link for ${WORLDNAME[$INDEX]}"
-				fi
-			else
-				if [ "$link" != "${WORLDSTORAGE}/${WORLDNAME[$INDEX]}" ]
-				then
-					as_user "rm -f $MCPATH/${WORLDNAME[$INDEX]}"
-					as_user "ln -s ${WORLDSTORAGE}/${WORLDNAME[$INDEX]} $MCPATH/${WORLDNAME[$INDEX]}"
-					printf '%b\n' "Created link for ${WORLDNAME[$INDEX]}"
-				fi
-			fi
-		else
-			printf '%b\n' "Could not process the world named '${WORLDNAME[$INDEX]}'. Please move all worlds to ${WORLDSTORAGE}."
-
-			exit 1
-		fi
-	done
-}
-
 check_update_vanilla() {
 	MC_SERVER_URL=$(wget -q -O - http://minecraft.net/download | grep minecraft_server.jar\ | cut -d \" -f 6)
 
@@ -319,7 +282,7 @@ check_update_vanilla() {
 
 	if [ -r "$MCPATH/minecraft_server.jar.update" ]
 	then
-		if $(diff $MCPATH/$MC_JAR $MCPATH/minecraft_server.jar.update >/dev/null)
+		if $(diff "$MCPATH"/"$MC_JAR $MCPATH"/minecraft_server.jar.update >/dev/null)
 		then
 			printf '%b\n' "You are already running the latest version of minecraft_server.jar."
 			return 1
@@ -340,7 +303,7 @@ check_update_buildtools() {
 
 	if [ -r "$MCPATH/minecraft_server.jar.update" ]
 	then
-		if $(diff $MCPATH/$MC_JAR $MCPATH/minecraft_server.jar.update >/dev/null)
+		if $(diff "$MCPATH"/"$MC_JAR" "$MCPATH"/minecraft_server.jar.update >/dev/null)
 		then
 			printf '%b\n' "You are already have the latest version of BuildTools ."
 			return 1
@@ -387,14 +350,14 @@ mc_update() {
 			printf '%b\n' "BuildTools.jar is up to date."
 			as_user "rm $BTPATH/BuildTools.jar.update"
 		fi
-		java -jar $BTPATH/BuildTools.jar" -rev $MC_REV
+		java -jar "$BTPATH/BuildTools.jar" -rev "$MC_REV"
 	fi
 }
 
 force_exit() {  # Kill the server running (messily) in an emergency
 	printf '%b\n' "SIGINIT CALLED - FORCE EXITING!"
 	pidfile=${MCPATH}/${SCREEN}.pid
-	rm $pidfile
+	rm "$pidfile"
 	echo "KILLING SERVER PROCESSES!!!"
 		# Display which processes are being killed
 		ps aux | grep -e 'java -Xmx' | grep -v grep | awk '{print $2}' | xargs -i echo "Killing PID: " {}
@@ -428,7 +391,6 @@ case "$1" in
 		if is_running; then
 			printf '%b\n' "Server already running."
 		else
-			check_links
 			mc_start
 		fi
 		;;
@@ -438,7 +400,7 @@ case "$1" in
 			mc_say "SERVER SHUTTING DOWN!"
 			mc_stop
 		else
-			printf '%b\n' No running server."
+			printf '%b\n' "No running server."
 		fi
 		;;
 	restart)
@@ -449,7 +411,6 @@ case "$1" in
 		else
 			printf '%b\n' "No running server, starting it..."
 		fi
-		check_links
 		mc_start
 		;;
 	whole-backup)
@@ -459,7 +420,6 @@ case "$1" in
 			mc_say "WARNING: WILL RESTART SERVER SOFTWARE!"
 			mc_stop
 			mc_whole_backup
-			check_links
 			mc_start
 		else
 			mc_whole_backup
@@ -468,7 +428,7 @@ case "$1" in
 	check-update)
 		check_update_vanilla
 		check_update_buildtools
-		as_user "rm "$MCPATH/minecraft_server.jar.update""
+		as_user "rm $MCPATH/minecraft_server.jar.update"
 		;;
 	update)
 		#update minecraft_server.jar and and spigot.jar (thanks karrth)
@@ -476,7 +436,6 @@ case "$1" in
 			mc_say "SERVER UPDATE IN 10 SECONDS."
 			mc_stop
 			mc_update
-			check_links
 			mc_start
 		else
 			mc_update
@@ -521,9 +480,6 @@ case "$1" in
 			printf '%b\n' "The server needs to be running to check version."
 		fi
 		;;
-	links)
-		check_links
-		;;
 	worlds)
 		get_worlds
 		for INDEX in "${!WORLDNAME[@]}"
@@ -540,7 +496,6 @@ case "$1" in
 		read START_SERVER
 		case "$START_SERVER" in
 			[Yy]|[Yy][Ee][Ss])
-				check_links
 				mc_start
 				as_user "script /dev/null -q -c \"screen -rx $SCREEN\""
 				;;
@@ -599,7 +554,6 @@ case "$1" in
 		echo -e "   say \t\t\t Prints the given string to the ingame chat"
 		echo -e "   status \t\t Displays server status"
 		echo -e "   version \t\t Displays Bukkit version and then exits"
-		echo -e "   links \t\t Creates nessesary symlinks"
 		echo -e "   worlds \t\t Displays a list of available worlds"
 		echo -e "   screen \t\t Shows the server screen"
 		;;
