@@ -310,7 +310,6 @@ check_links() {
 				if [ "$link" != "$RAMDISK/${WORLDNAME[$INDEX]}" ]
 				then
 					as_user "rm -f $MCPATH/${WORLDNAME[$INDEX]}"
-					as_user "ln -s $RAMDISK/${WORLDNAME[$INDEX]} $MCPATH/${WORLDNAME[$INDEX]}"
 					printf '%b\n' "Created link for ${WORLDNAME[$INDEX]}"
 				fi
 			else
@@ -360,7 +359,7 @@ check_update_buildtools() {
 	then
 		if $(diff $MCPATH/$MC_JAR $MCPATH/minecraft_server.jar.update >/dev/null)
 		then
-			printf '%b\n' "You are alreadyhave the latest version of BuildTools ."
+			printf '%b\n' "You are already have the latest version of BuildTools ."
 			return 1
 		else
 			printf '%b\n' "Update of $BT_JAR is needed."
@@ -399,6 +398,8 @@ mc_update() {
 			else
 				printf '%b\n' "Could not update BuildTools.jar"
 			fi
+			as_user "cd $BTPATH"
+			as_user "java -jar BuildTools.jar"
 		else
 			printf '%b\n' "BuildTools.jar is up to date."
 			as_user "rm $MCPATH/minecraft_server.jar.update"
@@ -493,8 +494,6 @@ case "$1" in
 	check-update)
 		check_update_vanilla
 		check_update_buildtools
-		check_update_spigot
-		check_update_bukkit
 		as_user "rm "$MCPATH/minecraft_server.jar.update""
 		;;
 	update)
@@ -527,38 +526,9 @@ case "$1" in
 			printf '%b\n' "No running server to send a command to."
 		fi
 		;;
-	connected)
-		# Lists connected users
-		if is_running; then
-			mc_command list
-			sleep 1s
-			# Get server log in reverse order, assume that response to 'list'
-			# command is already there.
-			tac "$SERVERLOG" | \
-				# Extract two lines. 1) containing ASCII color code and comma-separated list
-				# of  player names and 2) the line saying "[...] players online:"
-				grep --before-context 1 --max-count 1 "players online" | \
-				# Throw away the latter line.
-				head -n 1 | \
-				# Remove any escape character and the following two bytes (color code).
-				sed 's/[\x01-\x1F\x7F]..//g' | \
-				# Only pass through lines that still have content (if no player online,
-				# then nothing's left over after this grep.
-				grep . | \
-				# Replace ", " separator with newline char.
-				sed 's/, /\n/g'
-		else
-			printf '%b\n' "No running server."
-		fi
-		;;
 	log)
 		# Display server log using 'cat'.
 		cat "$SERVERLOG"
-		;;
-	last)
-		# Greps for recently logged in users
-		printf '%b\n' "Recently logged in users:"
-		awk '/entity|conn/ {sub(/lost/,"disconnected");print $1,$2,$4,$5}' "$SERVERLOG"
 		;;
 	status)
 		# Shows server status
@@ -584,12 +554,7 @@ case "$1" in
 		get_worlds
 		for INDEX in "${!WORLDNAME[@]}"
 		do
-			if "${WORLDRAM[$INDEX]}"
-			then
-				printf '%b\n' "${WORLDNAME[$INDEX]} (ramdisk)"
-			else
-				echo "${WORLDNAME[$INDEX]}"
-			fi
+			echo "${WORLDNAME[$INDEX]}"
 		done
 		;;
 	screen)
