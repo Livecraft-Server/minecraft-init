@@ -90,40 +90,6 @@ BACKUPSCRIPTCOMPATIBLE=YES
 # backup will not be very high.
 COMPRESS_WHOLEBACKUP=YES
 
-
-# Settings for log rolling
-# (Not used in Minecraft 1.7 and up)
-# ==================================
-
-# Location for old logs
-# Used by the log-roll command
-LOGPATH="/home/${USERNAME}/mcbackup/logs"
-
-# Whether or not to gzip logs (must be commented out for no - DO NOT CHANGE TO NO)
-GZIPLOGS=YES
-
-# What to append to the logfile name (Leave blank for nothing)
-LOGFILEAPPEND="logfile_"
-
-
-# Settings for overviewer command
-# ==================================
-
-# Where the Map is generated
-OUTPUTMAP="/home/${USERNAME}/mc-overviewer/render"
-
-# Path to Minecraft-Overviewer
-OVPATH="/home/${USERNAME}/mc-overviewer/Minecraft-Overviewer"
-
-# Path for the config file of Overviewer
-OVCONFIGPATH="/home/${USERNAME}/mc-overviewer"
-
-# Name of Overviewer config file
-OVCONFIGNAME="config.py"
-
-# Path for backup worlds
-OVBACKUP="/home/${USERNAME}/mc-overviewer/overviewerbackups"
-
 # Things to leave alone ;)
 # ==================================
 INVOCATION="java -XX:MaxPermSize=256M -Xmx$MAXMEM -Xms$INITMEM -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=$CPU_COUNT -XX:+AggressiveOpts -jar $SERVICE nogui"
