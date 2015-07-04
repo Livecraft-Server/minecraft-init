@@ -10,10 +10,13 @@
 # Name of vanilla server jar
 MC_JAR="minecraft_server.jar"
 
-# Name of Spigot jar
+# Name of Bukkit/Spigot jar
 SP_JAR="spigot.jar"
 
-# Name of server.jar to use ($MC_JAR or $SP_JAR.)
+# Revision of Minecraft to use. Can be a version number (1.8.7) or "latest".
+MC_REV="latest"
+
+# Name of server.jar to use ($MC_JAR for vanilla or $SP_JAR for Bukkit/Spigot.)
 SERVICE=$SP_JAR
 
 # Name to use for the screen instance
@@ -24,6 +27,9 @@ USERNAME="minecraft"
 
 # Path to minecraft server directory 
 MCPATH="/home/${USERNAME}/minecraft"
+
+# Path to BuildTools directory
+BTPATH="${MCPATH}/BuildTools"
 
 # Command to use for broadcast
 BROADCAST_COMMAND="say"
