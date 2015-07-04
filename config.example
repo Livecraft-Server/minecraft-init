@@ -34,11 +34,6 @@ BTPATH="${MCPATH}/BuildTools"
 # Command to use for broadcast
 BROADCAST_COMMAND="say"
 
-# Where the worlds are located on the disk. Can not be the same as MCPATH.
-# You need to move your worlds to this directory manually, the script
-# will then handle the nessessay symlinks.
-WORLDSTORAGE="${MCPATH}/worlds"
-
 # Number of CPUs/cores to use
 CPU_COUNT=2
 
