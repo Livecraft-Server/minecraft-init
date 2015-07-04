@@ -426,7 +426,7 @@ case "$1" in
 	start)
 		# Starts the server
 		if is_running; then
-			printf '%b\n' Server already running."
+			printf '%b\n' "Server already running."
 		else
 			check_links
 			mc_start
