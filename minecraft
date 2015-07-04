@@ -215,23 +215,6 @@ check_backup_settings() {
 	esac
 }
 
-get_worlds() {
-	SAVEIFS=$IFS
-	IFS=$(echo -en "\n\b")
-
-	a=1
-	for NAME in $(ls $WORLDSTORAGE)
-	do
-		if [ -d $WORLDSTORAGE/$NAME ]
-		then
-			WORLDNAME[$a]=$NAME
-			a=$a+1
-		fi
-	done
-
-	IFS=$SAVEIFS
-}
-
 mc_whole_backup() {
 	check_backup_settings
 	echo "backing up entire setup into $WHOLEBACKUP"
@@ -402,8 +385,9 @@ mc_update() {
 			as_user "java -jar BuildTools.jar"
 		else
 			printf '%b\n' "BuildTools.jar is up to date."
-			as_user "rm $MCPATH/minecraft_server.jar.update"
+			as_user "rm $BTPATH/BuildTools.jar.update"
 		fi
+		java -jar $BTPATH/BuildTools.jar" -rev $MC_REV
 	fi
 }
 
@@ -467,16 +451,6 @@ case "$1" in
 		fi
 		check_links
 		mc_start
-		;;
-	backup)
-		# Backups world
-		if is_running; then
-			mc_say "Backing up world."
-			mc_world_backup
-			mc_say "Backup complete."
-		else
-			mc_world_backup
-		fi
 		;;
 	whole-backup)
 		# Backup everything
@@ -618,7 +592,6 @@ case "$1" in
 		echo -e "   stop \t\t Stops the server"
 		echo -e "   kill \t\t Kills the server"
 		echo -e "   restart \t\t Restarts the server"
-		echo -e "   backup \t\t Backups the worlds defined in the script"
 		echo -e "   whole-backup \t Backups the entire server folder"
 		echo -e "   check-update \t Checks for updates of $SP_JAR, and $MC_JAR"
 		echo -e "   update \t\t Fetches the latest version of the Minecraft and Spigot server."
