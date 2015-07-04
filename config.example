@@ -93,6 +93,3 @@ COMPRESS_WHOLEBACKUP=YES
 # Things to leave alone ;)
 # ==================================
 INVOCATION="java -XX:MaxPermSize=256M -Xmx$MAXMEM -Xms$INITMEM -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=$CPU_COUNT -XX:+AggressiveOpts -jar $SERVICE nogui"
-
-# Path to the the mounted ramdisk (the default will work in most senarios).
-RAMDISK="/dev/shm"
