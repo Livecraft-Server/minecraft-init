@@ -208,7 +208,7 @@ check_backup_settings() {
 	esac
 }
 
-mc_whole_backup() {
+mc_backup() {
 	check_backup_settings
 	echo "backing up entire setup into $WHOLEBACKUP"
 	path=$(datepath $WHOLEBACKUP/mine_)
@@ -227,51 +227,6 @@ mc_whole_backup() {
 	else
 		as_user "$STORECMD $path/whole-backup$STOREDENDING $MCPATH $exclude"
 	fi
-}
-
-mc_world_backup() {
-	#
-	# Backup the worlds and puts them in a folder for each day (unless $BACKUPSCRIPTCOMPATIBLE is set)
-	#
-
-	check_backup_settings
-	get_worlds
-	today="$(date +%F)"
-	as_user "mkdir -p $BACKUPPATH"
-
-	# Check if the backup script compatibility is enabled
-	if [ "$BACKUPSCRIPTCOMPATIBLE" ]
-	then
-		# If it is enabled, then delete the old backups to prevent errors
-		printf '%b\n' "Detected that backup script compatibility is enabled, deleting old backups that are not necessary."
-		as_user "rm -r $BACKUPPATH/*"
-	fi
-
-	for INDEX in "${!WORLDNAME[@]}"
-	do
-		printf '%b\n' "Backing up minecraft ${WORLDNAME[$INDEX]}"
-		if [ "$WORLDEDITCOMPATIBLE" ]
-		# If this is set tars will be created compatible to WorldEdit
-		then
-			as_user "mkdir -p $BACKUPPATH/${WORLDNAME[$INDEX]}"
-			path=$(datepath $BACKUPPATH/${WORLDNAME[$INDEX]}/ $ARCHIVEENDING $ARCHIVEENDING)
-		elif [ "$BACKUPSCRIPTCOMPATIBLE" ]
-		# If is set tars will be put in $BACKUPPATH without any timestamp to be compatible with
-		# [backup rotation script](https://github.com/adamfeuer/rotate-backups)
-		then
-			path=$BACKUPPATH/${WORLDNAME[$INDEX]}$ARCHIVEENDING
-		else
-			as_user "mkdir -p $BACKUPPATH/${today}"
-			path=$(datepath $BACKUPPATH/${today}/${WORLDNAME[$INDEX]}_ $ARCHIVEENDING $ARCHIVEENDING)
-		fi
-		if [ "$WORLDEDITCOMPATIBLE" ]
-		# Don't store the complete path
-		then
-			as_user "cd $MCPATH && $COMPRESSCMD $path ${WORLDNAME[$INDEX]}"
-		else
-			as_user "$COMPRESSCMD $path $MCPATH/${WORLDNAME[$INDEX]}"
-		fi
-	done
 }
 
 check_update_vanilla() {
@@ -413,16 +368,16 @@ case "$1" in
 		fi
 		mc_start
 		;;
-	whole-backup)
+	backup)
 		# Backup everything
 		if is_running; then
 			mc_say "COMPLETE SERVER BACKUP IN 10 SECONDS."
 			mc_say "WARNING: WILL RESTART SERVER SOFTWARE!"
 			mc_stop
-			mc_whole_backup
+			mc_backup
 			mc_start
 		else
-			mc_whole_backup
+			mc_backup
 		fi
 		;;
 	check-update)
@@ -547,7 +502,7 @@ case "$1" in
 		echo -e "   stop \t\t Stops the server"
 		echo -e "   kill \t\t Kills the server"
 		echo -e "   restart \t\t Restarts the server"
-		echo -e "   whole-backup \t Backups the entire server folder"
+		echo -e "   backup \t Backups the entire server folder"
 		echo -e "   check-update \t Checks for updates of $SP_JAR, and $MC_JAR"
 		echo -e "   update \t\t Fetches the latest version of the Minecraft and Spigot server."
 		echo -e "   log \t\t\t Prints the server log"
