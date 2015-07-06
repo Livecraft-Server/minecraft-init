@@ -415,8 +415,8 @@ case "$1" in
 		fi
 		;;
 	log)
-		# Display server log using 'cat'.
-		cat "$SERVERLOG"
+		# Display server log using 'more'.
+		more "$SERVERLOG"
 		;;
 	status)
 		# Shows server status
