@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Minecraft-init by alfonsojon</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Minecraft-init</h1>
+        <h2>Init script for Minecraft, Bukkit, and Spigot servers. Sponge support coming soon.</h2>
+        <a href="https://github.com/alfonsojon/minecraft-init" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h3>
+<a id="about-minecraft-init" class="anchor" href="#about-minecraft-init" aria-hidden="true"><span class="octicon octicon-link"></span></a>About minecraft-init</h3>
+
+<p>Running a Java-powered application as a service on Linux can be a pain. Often, many have done things such as running it in Byobu, leaving a desktop with a window running, or even having a Windows-based PC run their Minecraft servers. This is not optimal, as a headless Linux system would sweep the competition in this case! Unfortunately, software did not exist to solve this problem on Linux headless systems, until <a href="https://github.com/Ahtenus/minecraft-init">Ahtenus created a Minecraft init.d script</a>. While this software was very useful, it seems to have fallen behind in supporting the latest Minecraft servers and abilities. The aim of this project is to enhance the script made by Ahtenus and provide support for newer Minecraft servers such as Sponge and the new builds of Spigot/Bukkit through the BuildTools project.</p>
+
+<h3>
+<a id="installing" class="anchor" href="#installing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing</h3>
+
+<p>Note, this project is currently a work in progress. I do not suggest running it on a dedicated server at the moment, as the code is fairly volatile; the feature you love today may change tomorrow. I am currently working on rewriting components of the script to be more standard, as well as optimize it in order to achieve maximum stability and performance. If you are adamant about installing this on your server, the instructions are available in the <a href="https://github.com/alfonsojon/minecraft-init/blob/master/README.md">README.md</a> file.</p>
+
+<h3>
+<a id="the-future" class="anchor" href="#the-future" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Future</h3>
+
+<p>Given that this project is currently in progress, there can and will be changes. While many often find this annoying... it's progress! The ultimate goal of this project is to accomplish the following: </p>
+
+<ol>
+<li>Allow multiple "profiles" for the user to switch between servers, or run multiple at the same time</li>
+<li>Provide an API for control panels, perhaps through a separate package</li>
+<li>Sandbox servers from one another to prevent insecure plugins from escaping the plugins folder</li>
+<li>Support various servers, such as but not limited to...
+
+<ul>
+<li>MCPC+</li>
+<li>Cauldron</li>
+<li>Sponge</li>
+<li>Glowstone</li>
+<li>Forge Server</li>
+<li>Spigot (through BuildTools)</li>
+<li>Bukkit (through BuildTools)</li>
+</ul>
+</li>
+<li>Implement an auto-updating mechanism for the aforementioned server softwares</li>
+<li>Implement a plugin/mod updating mechanism, where links can be provided (if possible)</li>
+<li>Re-implement buggy features in the original script, such as the backup system and the ramdisk</li>
+</ol>
+
+<h3>
+<a id="issues" class="anchor" href="#issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Issues</h3>
+
+<p>Having a problem? You are more than welcome to [open an issue]. It's hard to fix errors that I don't know about!</p>
+
+<h3>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h3>
+
+<p>If you would like to contribute, I am very open to taking pull requests. Just make sure your code follows the general syntax of the existing code, and is not vulnerable nor malicious. If you'd like to become a long-term contributor, you may email me to consider being added to the list of contributors.</p>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/alfonsojon/minecraft-init/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/alfonsojon/minecraft-init/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/alfonsojon/minecraft-init"></a> is maintained by <a href="https://github.com/alfonsojon">alfonsojon</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+            <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-65192713-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
