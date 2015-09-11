@@ -1,6 +1,6 @@
 Init script for various Minecraft servers
 =======================================
-A init script that, apart form starting and stopping the server correctly, has many extra features
+An [LSB init script](https://wiki.debian.org/LSBInitScripts) that, apart form starting and stopping the server correctly, has many extra features
 for running a vanilla Minecraft, Spigot, or Bukkit server.
 
 Features
@@ -17,10 +17,20 @@ git, java, screen, rsync
 Access server console
 =====================
 
-	screen -x minecraft
+Directly connect to terminal without the help of the init script.
+
+    screen -x minecraft #(If you configured to use Screen)
+
+            OR
+
+    byobu minecraft #(If you configured to use Byobu)
+
+OR
+
+    service minecraft screen # (requires setup step 1 to be completed)
 
 Exit the console
-	
+
 	Screen:	CTRL+A D
 	Byobu:	CTRL+A A D
 
@@ -38,7 +48,7 @@ Setup
 3. Edit crontab
 
 	As the server user:
-	
+
 		crontab -e
 
 	Add these lines:
@@ -52,7 +62,7 @@ For more help with the script, run
 
 	/etc/init.d/minecraft help
 
-[![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=Ahtenus&url=https://github.com/Ahtenus/minecraft-init&title=minecraft-init&language=en_GB&tags=github&category=software) 
+[![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=Ahtenus&url=https://github.com/Ahtenus/minecraft-init&title=minecraft-init&language=en_GB&tags=github&category=software)
 
 Good stuff
 ==========
