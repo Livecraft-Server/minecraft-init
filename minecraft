@@ -13,13 +13,9 @@
 # Description:    Init script for Bukkit & Spigot server software
 ### END INIT INFO
 
-# Created by Ahtenus
+# Modified by Jonathan Alfonso
 
 # Based on http://minecraft.gamepedia.com/Tutorials/Server_startup_script
-# Support for multiworld by Benni-chan
-# Log rolls without needing restarts by Solorvox
-# Option for killing server in an emergency by jbondhus
-# Extensive modification by alfonsojon
 
 # OS X does not support init.d scripts; prevent running on OS X.
 # If you use a Darwin-based distribution with init.d support, commment the following four lines out.
@@ -39,483 +35,187 @@ source $(dirname $(readlink -e $0))/config
 	exit
 }
 
+# Test for java
+hash java 2>/dev/null || {
+  echo >&2 "Java not found. Aborting."
+  exit 1
+}
+# Test for screen
+hash screen 2>/dev/null || {
+  echo >&2 "screen not found. Aborting."
+  exit 1
+}
+
+
+# Script begins
+
+ME=`whoami`
+INVOCATION="java -Xmx${MAXHEAP}M -Xms${MINHEAP}M -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=$CPU_COUNT -XX:+AggressiveOpts -jar $SERVICE $OPTIONS" 
 as_user() {
-	if [[ $(whoami) == "$USERNAME" ]]; then
-		bash -c "$1"
-	else
-		su "$USERNAME" -s "/usr/bin/env bash -c" "$1"
-	fi
-}
-
-is_running() {
-	# Checks for the minecraft servers screen session
-	# returns true if it exists.
-	pidfile="${MCPATH}"/"${SCREEN}".pid
-
-	if [[ -f "$pidfile" ]]; then
-		pid=$(head -1 "$pidfile")
-		if ps ax | grep -v grep | grep "${pid}" | grep "${SCREEN}" > /dev/null; then
-			return 0
-		else
-			if [[ -z "$isInStop" ]]; then
-				if [ -z "$roguePrinted" ]; then
-					roguePrinted=1
-					echo "Rogue pidfile found!"
-				fi
-			fi
-			return 1
-		fi
-	else
-		if ps ax | grep -v grep | grep "${SCREEN} ${INVOCATION}" > /dev/null; then
-			echo "No pidfile found, but server's running."
-			echo "Re-creating the pidfile."
-
-			pid=$(ps ax | grep -v grep | grep "${SCREEN} ${INVOCATION}" | cut -f1 -d' ')
-			check_permissions
-			as_user "echo $pid > $pidfile"
-
-			return 0
-		else
-			return 1
-		fi
-	fi
-}
-
-datepath() {
-	# datepath path filending-to-check returned-filending
-
-	# Returns an file path with added date between the filename and file ending.
-	# $1 filepath (not including file ending)
-	# $2 file ending to check for uniqueness
-	# $3 file ending to return
-
-	if [[ -e "$1$(date +%F)$2" ]]; then
-		echo "$1$(date +%FT%T)$3"
-	else
-		printf '%b\n' "$1$(date +%F)$3"
-	fi
+  if [ "$ME" = "$USERNAME" ] ; then
+    bash -c "$1"
+  else
+    su - "$USERNAME" -c "$1"
+  fi
 }
 
 mc_start() {
-	servicejar="$MCPATH"/"$SERVICE"
-	if [[ ! -f "$servicejar" ]]; then
-		printf '%b\n' "Failed to start: Can't find the specified Minecraft jar under $servicejar. Please check your config!"
-		exit 1
-	fi
-
-	pidfile="${MCPATH}"/"${SCREEN}".pid
-	check_permissions
-	as_user "cd $MCPATH && screen -dmS $SCREEN $INVOCATION"
-	as_user "screen -list | grep \.$SCREEN | cut -f1 -d'.' | head -n 1 | tr -d -c 0-9 > $pidfile"
-
-	#
-	# Waiting for the server to start
-	#
-	seconds=0
-	until is_running; do
-		sleep 1
-		seconds=$seconds+1
-		if [[ $seconds -eq 5 ]]
-		then
-			printf '%b\n' "Still not running, waiting a while longer..."
-		fi
-		if [[ $seconds -ge 120 ]]
-		then
-			printf '%b\n' "Failed to start, aborting."
-			exit 1
-		fi
-	done
-	printf '%b\n' "$SERVICE is running."
+  if  pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+    echo "$SERVICE is already running!"
+  else
+    echo "Starting $SERVICE..."
+    cd $MCPATH
+    as_user "cd $MCPATH && screen -h 1024 -dmS ${SCREENNAME} $INVOCATION"
+    sleep 7
+    if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+      echo "$SERVICE is now running."
+    else
+      echo "Error! Could not start $SERVICE!"
+    fi
+  fi
 }
 
-mc_command() {
-	if is_running
-	then
-			# fixme: Find a way to send enter to the console before running mc_command
-			as_user "screen -p 0 -S $SCREEN -X eval 'stuff \"$(eval echo $FORMAT)\"\015'"
-	else
-			printf '%b\n' "$SERVICE was not running. Not able to run command."
-	fi
+mc_saveoff() {
+  if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+    echo "$SERVICE is running... suspending saves"
+   as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"say SERVER BACKUP STARTING. Server going readonly...\"\015'"
+    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"save-off\"\015'"
+    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"save-all\"\015'"
+    sync
+    sleep 10
+  else
+    echo "$SERVICE is not running. Not suspending saves."
+  fi
 }
 
-mc_say() {
-	if is_running
-	then
-		echo "Said: $1"
-		mc_command "$BROADCAST_COMMAND $1"
-	else
-		echo "$SERVICE was not running. Not able to say anything."
-	fi
+mc_saveon() {
+  if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+    echo "$SERVICE is running... re-enabling saves"
+    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"save-on\"\015'"
+    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"say SERVER BACKUP ENDED. Server going read-write...\"\015'"
+  else
+    echo "$SERVICE is not running. Not resuming saves."
+  fi
 }
 
 mc_stop() {
-	pidfile=${MCPATH}/${SCREEN}.pid
-	#
-	# Stops the server
-	#
-	echo "Saving worlds..."
-	mc_command save-all
-	sleep 10
-	echo "Stopping server..."
-	mc_command stop
-	sleep 0.5
-	#
-	# Waiting for the server to shut down
-	#
-	seconds=0
-	isInStop=1
-	while is_running
-	do
-		sleep 1
-		seconds=$seconds+1
-		if [[ $seconds -eq 5 ]]
-		then
-			echo "Still not shut down, waiting a while longer..."
-		fi
-		if [[ $seconds -ge 120 ]]
-		then
-			logger -t minecraft-init "Failed to shut down server, aborting."
-			echo "Failed to shut down, aborting."
-			exit 1
-		fi
-	done
-	as_user "rm $pidfile"
-	unset isInStop
-	is_running
-	echo "$SERVICE is now shut down."
-}
-
-check_backup_settings() {
-	case "$BACKUPFORMAT" in
-		tar)
-			COMPRESSCMD="tar -hcjf"
-			STORECMD="tar -cpf"
-			ARCHIVEENDING=".tar.bz2"
-			STOREDENDING=".tar"
-			EXCLUDEARG="-X "
-			;;
-		zip)
-			COMPRESSCMD="zip -rq"
-			STORECMD="zip -rq -0"
-			ARCHIVEENDING=".zip"
-			STOREDENDING=".zip"
-			EXCLUDEARG="-x@"
-			;;
-		*)
-			echo "$BACKUPFORMAT is not a supported backup format"
-			exit 1
-			;;
-	esac
-}
-
-mc_backup() {
-	check_backup_settings
-	echo "backing up entire setup into $WHOLEBACKUP"
-	path=$(datepath $WHOLEBACKUP/mine_)
-	locationOfScript=$(dirname "$(readlink -e "$0")")
-	as_user "mkdir -p $path"
-
-	if [ -r "$locationOfScript/exclude.list" ]
-	then
-		printf '%b\n' "...except the following files and/or dirs:"
-		cat $locationOfScript/exclude.list
-		exclude="$EXCLUDEARG$locationOfScript/exclude.list"
-	fi
-	if [ "$COMPRESS_WHOLEBACKUP" ]
-	then
-		as_user "$COMPRESSCMD $path/whole-backup$ARCHIVEENDING $MCPATH $exclude"
-	else
-		as_user "$STORECMD $path/whole-backup$STOREDENDING $MCPATH $exclude"
-	fi
-}
-
-check_update_vanilla() {
-	MC_SERVER_URL=$(wget -q -O - http://minecraft.net/download | grep minecraft_server.jar\ | cut -d \" -f 6)
-
-	printf '%b\n' "Checking for update for minecraft_server.jar (Vanilla)"
-	as_user "cd $MCPATH && wget -q -O $MCPATH/minecraft_server.jar.update $MC_SERVER_URL"
-
-	if [ -r "$MCPATH/minecraft_server.jar.update" ]
-	then
-		if $(diff "$MCPATH/$MC_JAR $MCPATH/minecraft_server.jar.update" >/dev/null)
-		then
-			printf '%b\n' "You are already running the latest version of minecraft_server.jar."
-			return 1
-		else
-			printf '%b\n' "Update of $MC_JAR is needed."
-			return 0
-		fi
-	else
-		printf '%b\n' "Something went wrong. Couldn't download minecraft_server.jar"
-	fi
-}
-
-check_update_buildtools() {
-	BUILDTOOLS_URL=https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
-
-	printf '%b\n' "Checking for update for Spigot BuildTools"
-	as_user "cd $BTPATH && wget -q -O $BTPATH/BuildTools.jar.update $BUILDTOOLS_URL"
-
-	if [ -r "$MCPATH/minecraft_server.jar.update" ]
-	then
-		if $(diff "$MCPATH"/"$MC_JAR" "$MCPATH"/minecraft_server.jar.update >/dev/null)
-		then
-			printf '%b\n' "You are already have the latest version of BuildTools ."
-			return 1
-		else
-			printf '%b\n' "Update of $BT_JAR is needed."
-			return 0
-		fi
-	else
-		printf '%b\n' "Something went wrong. Couldn't download BuildTools.jar"
-	fi
+  if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+    echo "Stopping $SERVICE"
+    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"say SERVER SHUTTING DOWN IN 10 SECONDS. Saving map...\"\015'"
+    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"save-all\"\015'"
+    sleep 10
+    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"stop\"\015'"
+    sleep 7
+  else
+    echo "$SERVICE was not running."
+  fi
+  if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+    echo "Error! $SERVICE could not be stopped."
+  else
+    echo "$SERVICE is stopped."
+  fi
 }
 
 mc_update() {
-	if is_running
-	then
-		printf '%b\n' "$SERVICE is running! Will not start update."
-	else
-		if check_update_vanilla
-		then
-			if [ -r "$MCPATH/minecraft_server.jar.update" ]
-			then
-				as_user "mv $MCPATH/minecraft_server.jar.update $MCPATH/$MC_JAR"
-				printf '%b\n' "Update of $MC_JAR done."
-			else
-				printf '%b\n' "An error occurred while updating $MC_JAR."
-			fi
-		else
-			printf '%b\n' "$MC_JAR is up to date."
-			as_user "rm $MCPATH/minecraft_server.jar.update"
-		fi
-
-		if check_update_buildtools
-		then
-			if [ -r "$BTPATH/BuildTools.jar.update" ]
-			then
-				as_user "mv $BTPATH/BuildTools.jar.update $BTPATH/BuildTools.jar"
-				printf '%b\n' "Update of BuildTools.jar done."
-			else
-				printf '%b\n' "Could not update BuildTools.jar"
-			fi
-			as_user "cd $BTPATH"
-			as_user "java -jar BuildTools.jar"
-		else
-			printf '%b\n' "BuildTools.jar is up to date."
-			as_user "rm $BTPATH/BuildTools.jar.update"
-		fi
-		java -jar "$BTPATH/BuildTools.jar" -rev "$MC_REV"
-	fi
+  if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+    echo "$SERVICE is running! Will not start update."
+  else
+    as_user "cd $MCPATH && wget -q -O $MCPATH/versions --no-check-certificate https://launchermeta.mojang.com/mc/game/version_manifest.json"
+    if [ "$1" == "snapshot" ] ; then
+      JSONVERSION=`cd $MCPATH && cat versions | python -c "exec(\"import json,sys\nobj=json.load(sys.stdin)\nversion=obj['latest']['snapshot']\nfor v in obj['versions']:\n   if v['id']==version:\n    print v['url']\")"`
+    else
+      JSONVERSION=`cd $MCPATH && cat versions | python -c "exec(\"import json,sys\nobj=json.load(sys.stdin)\nversion=obj['latest']['release']\nfor v in obj['versions']:\n   if v['id']==version:\n    print v['url']\")"`
+    fi
+    as_user "cd $MCPATH && wget -q -O $MCPATH/versions --no-check-certificate $JSONVERSION"
+    MC_SERVER_URL=`cd $MCPATH && cat versions | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["downloads"]["server"]["url"]'`
+    as_user "rm $MCPATH/versions"
+    as_user "cd $MCPATH && wget -q -O $MCPATH/minecraft_server.jar.update --no-check-certificate $MC_SERVER_URL"
+    if [ -f $MCPATH/minecraft_server.jar.update ] ; then
+      if `diff $MCPATH/$SERVICE $MCPATH/minecraft_server.jar.update >/dev/null` ; then
+        echo "You are already running the latest version of $SERVICE."
+      else
+        as_user "mv $MCPATH/minecraft_server.jar.update $MCPATH/$SERVICE"
+        echo "Minecraft successfully updated."
+      fi
+    else
+      echo "Minecraft update could not be downloaded."
+    fi
+  fi
 }
 
-force_exit() {  # Kill the server running (messily) in an emergency
-	printf '%b\n' "SIGINIT CALLED - FORCE EXITING!"
-	pidfile=${MCPATH}/${SCREEN}.pid
-	rm "$pidfile"
-	echo "KILLING SERVER PROCESSES!!!"
-		# Display which processes are being killed
-		ps aux | grep -e 'java -Xmx' | grep -v grep | awk '{print $2}' | xargs -i echo "Killing PID: " {}
-		ps aux | grep -e 'SCREEN -dmS minecraft java' | grep -v grep | awk '{print $2}' | xargs -i printf '%b\n' Killing PID: " {}
-		ps aux | grep -e '/etc/init.d/minecraft' | grep -v grep | awk '{print $2}' | xargs -i printf '%b\n' Killing PID: " {}
+mc_backup() {
+   mc_saveoff
+   
+   NOW=`date "+%Y-%m-%d_%Hh%M"`
+   BACKUP_FILE="$BACKUPPATH/${WORLD}_${NOW}.tar"
+   echo "Backing up minecraft world..."
+   #as_user "cd $MCPATH && cp -r $WORLD $BACKUPPATH/${WORLD}_`date "+%Y.%m.%d_%H.%M"`"
+   as_user "tar -C \"$MCPATH\" -cf \"$BACKUP_FILE\" $WORLD"
 
-		# Kill the processes
-		ps aux | grep -e 'java -Xmx' | grep -v grep | awk '{print $2}' | xargs -i kill {}
-		ps aux | grep -e 'SCREEN -dmS minecraft java' | grep -v grep | awk '{print $2}' | xargs -i kill {}
-		ps aux | grep -e '/etc/init.d/minecraft' | grep -v grep | awk '{print $2}' | xargs -i kill {}
+   echo "Backing up $SERVICE"
+   as_user "tar -C \"$MCPATH\" -rf \"$BACKUP_FILE\" $SERVICE"
+   #as_user "cp \"$MCPATH/$SERVICE\" \"$BACKUPPATH/minecraft_server_${NOW}.jar\""
 
-	exit 1
+   mc_saveon
+
+   echo "Compressing backup..."
+   as_user "gzip -f \"$BACKUP_FILE\""
+   echo "Done."
 }
 
-get_script_location() {
-	dirname "$(readlink -e "$0")"
+mc_command() {
+  command="$1";
+  if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+    pre_log_len=`wc -l "$MCPATH/logs/latest.log" | awk '{print $1}'`
+    echo "$SERVICE is running... executing command"
+    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"$command\"\015'"
+    sleep .1 # assumes that the command will run and print to the log file in less than .1 seconds
+    # print output
+    tail -n $[`wc -l "$MCPATH/logs/latest.log" | awk '{print $1}'`-$pre_log_len] "$MCPATH/logs/latest.log"
+  fi
 }
 
-check_permissions() {
-	as_user "touch $pidfile"
-	if ! as_user "test -w '$pidfile'" ; then
-		printf '%b\n' "Check Permissions. Cannot write to $pidfile. Correct the permissions and then excute: $0 status"
-	fi
-}
-
-trap force_exit SIGINT
-
+#Start-Stop here
 case "$1" in
-	start)
-		# Starts the server
-		if is_running; then
-			printf '%b\n' "Server already running."
-		else
-			mc_start
-		fi
-		;;
-	stop)
-		# Stops the server
-		if is_running; then
-			mc_say "SERVER SHUTTING DOWN!"
-			mc_stop
-		else
-			printf '%b\n' "No running server."
-		fi
-		;;
-	restart)
-		# Restarts the server
-		if is_running; then
-			mc_say "SERVER REBOOT IN 10 SECONDS!"
-			mc_stop
-		else
-			printf '%b\n' "No running server, starting it..."
-		fi
-		mc_start
-		;;
-	backup)
-		# Backup everything
-		if is_running; then
-			mc_say "COMPLETE SERVER BACKUP IN 10 SECONDS."
-			mc_say "WARNING: WILL RESTART SERVER SOFTWARE!"
-			mc_stop
-			mc_backup
-			mc_start
-		else
-			mc_backup
-		fi
-		;;
-	check-update)
-		check_update_vanilla
-		check_update_buildtools
-		as_user "rm $MCPATH/minecraft_server.jar.update"
-		;;
-	update)
-		#update minecraft_server.jar and and spigot.jar (thanks karrth)
-		if is_running; then
-			mc_say "SERVER UPDATE IN 10 SECONDS."
-			mc_stop
-			mc_update
-			mc_start
-		else
-			mc_update
-		fi
-		;;
-	say)
-		# Says something to the ingame chat
-		if is_running; then
-			shift 1
-			mc_say "$*"
-		else
-			printf '%b\n' "No running server to say anything."
-		fi
-		;;
-	command)
-		if is_running; then
-			shift 1
-			mc_command "$*"
-			printf '%b\n' "Sent command: $*"
-		else
-			printf '%b\n' "No running server to send a command to."
-		fi
-		;;
-	log)
-		# Display server log using 'more'.
-		more "$SERVERLOG"
-		;;
-	status)
-		# Shows server status
-		if is_running
-		then
-			printf '%b\n' "$SERVICE is running."
-		else
-			printf '%b\n' "$SERVICE is not running."
-		fi
-		;;
-	version)
-		if is_running; then
-			mc_command version
-			tac "$SERVERLOG" | grep -m 1 "This server is running"
-		else
-			printf '%b\n' "The server needs to be running to check version."
-		fi
-		;;
-	worlds)
-		get_worlds
-		for INDEX in "${!WORLDNAME[@]}"
-		do
-			echo "${WORLDNAME[$INDEX]}"
-		done
-		;;
-	screen)
-		if is_running; then
-			as_user "script /dev/null -q -c \"screen -rx $SCREEN\""
-		else
-		echo "Server is not running. Do you want to start it?"
-		echo "Please put \"Yes\", or \"No\": "
-		read START_SERVER
-		case "$START_SERVER" in
-			[Yy]|[Yy][Ee][Ss])
-				mc_start
-				as_user "script /dev/null -q -c \"screen -rx $SCREEN\""
-				;;
-			[Nn]|[Nn][Oo])
-				clear
-				echo "Aborting startup!"
-				sleep 1
-				clear
-				exit 1
-				;;
-			*)
-				clear
-				echo "Invalid input"
-				sleep 1
-				clear
-				exit 1
-				;;
-		esac
-		fi
-		;;
-	kill)
-		WIDTH=$(stty size | cut -d ' ' -f 2)		# Get terminal's character width
-		pstree | grep MDSImporte | cut -c 1-"${WIDTH}"	# Chop output after WIDTH chars
+  start)
+    mc_start
+    ;;
+  stop)
+    mc_stop
+    ;;
+  restart)
+    mc_stop
+    mc_start
+    ;;
+  update)
+    mc_stop
+    mc_backup
+    mc_update $2
+    mc_start
+    ;;
+  backup)
+    mc_backup
+    ;;
+  status)
+    if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
+      echo "$SERVICE is running."
+    else
+      echo "$SERVICE is not running."
+    fi
+    ;;
+  command)
+    if [ $# -gt 1 ] ; then
+      shift
+      mc_command "$*"
+    else
+      echo "Must specify server command (try 'help'?)"
+    fi
+    ;;
 
-		echo "Killing the server is an EMERGENCY procedure, and should not be used to perform a normal shutdown! All changes younger than 15 minutes could be permanantly lost and WORLD CORRUPTION is possible! Are you ABSOLUTELY POSITIVE this is what you want to do?"
-		echo "Please put \"Yes\", or \"No\": "
-		read KILL_SERVER
-		case "$KILL_SERVER" in		# Determine which option was specified
-			[Yy]|[Yy][Ee][Ss])	# If yes, kill the server
-				echo "KILLING SERVER PROCESSES!!!"
-				force_exit "$@"
-				exit 1
-				;;
-			[Nn]|[Nn][Oo])		# If no, abort and exit 1
-				echo "Aborting!"
-				exit 1
-				;;
-			*)			# If anything else, exit 1 
-				echo "Error: Invalid Input!"
-				exit 1
-				;;
-		esac
-		;;
-	help|--help|-h)
-		echo "Usage: $0 COMMAND"
-		echo
-		echo "Available commands:"
-		echo -e "   start \t\t Starts the server"
-		echo -e "   stop \t\t Stops the server"
-		echo -e "   kill \t\t Kills the server"
-		echo -e "   restart \t\t Restarts the server"
-		echo -e "   backup \t\t Backups the entire server folder"
-		echo -e "   check-update \t Checks for updates of BuildTools.jar and $MC_JAR"
-		echo -e "   update \t\t Fetches the latest version of the Minecraft server and Spigot BuildTools.jar"
-		echo -e "   log \t\t\t Prints the server log"
-		echo -e "   say \t\t\t Prints the given string to the ingame chat"
-		echo -e "   status \t\t Displays server status"
-		echo -e "   version \t\t Displays Bukkit version and then exits"
-		echo -e "   worlds \t\t Displays a list of available worlds"
-		echo -e "   screen \t\t Shows the server screen"
-		;;
-	*)
-		echo "No such command, see $0 help"
-		exit 1
-		;;
+  *)
+  echo "Usage: $0 {start|stop|update|backup|status|restart|command \"server command\"}"
+  exit 1
+  ;;
 esac
 
 exit 0
