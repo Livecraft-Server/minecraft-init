@@ -49,7 +49,7 @@ hash screen 2>/dev/null || {
 
 # Script begins
 
-ME=`whoami`
+ME=$(whoami)
 INVOCATION="java -Xmx${MAXHEAP}M -Xms${MINHEAP}M -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=$CPU_COUNT -XX:+AggressiveOpts -jar $SERVICE $OPTIONS" 
 as_user() {
   if [ "$ME" = "$USERNAME" ] ; then
@@ -134,16 +134,16 @@ mc_update() {
       else
         as_user "cd $MCPATH && wget -q -O $MCPATH/versions --no-check-certificate https://launchermeta.mojang.com/mc/game/version_manifest.json"
         if [ "$1" == "snapshot" ] ; then
-          JSONVERSION=`cd $MCPATH && cat versions | python -c "exec(\"import json,sys\nobj=json.load(sys.stdin)\nversion=obj['latest']['snapshot']\nfor v in obj['versions']:\n   if v['id']==version:\n    print v['url']\")"`
+          JSONVERSION=$(cd $MCPATH && cat versions | python -c "exec(\"import json,sys\nobj=json.load(sys.stdin)\nversion=obj['latest']['snapshot']\nfor v in obj['versions']:\n   if v['id']==version:\n    print v['url']\")")
         else
-          JSONVERSION=`cd $MCPATH && cat versions | python -c "exec(\"import json,sys\nobj=json.load(sys.stdin)\nversion=obj['latest']['release']\nfor v in obj['versions']:\n   if v['id']==version:\n    print v['url']\")"`
+          JSONVERSION=$(cd $MCPATH && cat versions | python -c "exec(\"import json,sys\nobj=json.load(sys.stdin)\nversion=obj['latest']['release']\nfor v in obj['versions']:\n   if v['id']==version:\n    print v['url']\")")
         fi
         as_user "cd $MCPATH && wget -q -O $MCPATH/versions --no-check-certificate $JSONVERSION"
-        MC_SERVER_URL=`cd $MCPATH && cat versions | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["downloads"]["server"]["url"]'`
+        MC_SERVER_URL=$(cd $MCPATH && cat versions | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["downloads"]["server"]["url"]')
         as_user "rm $MCPATH/versions"
         as_user "cd $MCPATH && wget -q -O $MCPATH/minecraft_server.jar.update --no-check-certificate $MC_SERVER_URL"
         if [ -f $MCPATH/minecraft_server.jar.update ] ; then
-          if `diff $MCPATH/$SERVICE $MCPATH/minecraft_server.jar.update >/dev/null` ; then
+          if $(diff $MCPATH/$SERVICE $MCPATH/minecraft_server.jar.update >/dev/null) ; then
             echo "You are already running the latest version of $SERVICE."
           else
             as_user "mv $MCPATH/minecraft_server.jar.update $MCPATH/$SERVICE"
@@ -160,10 +160,10 @@ mc_update() {
 mc_backup() {
    mc_saveoff
    
-   NOW=`date "+%Y-%m-%d_%Hh%M"`
+   NOW=$(date "+%Y-%m-%d_%Hh%M")
    BACKUP_FILE="$BACKUPPATH/${WORLD}_${NOW}.tar"
    echo "Backing up minecraft world..."
-   #as_user "cd $MCPATH && cp -r $WORLD $BACKUPPATH/${WORLD}_`date "+%Y.%m.%d_%H.%M"`"
+   #as_user "cd $MCPATH && cp -r $WORLD $BACKUPPATH/${WORLD}_$(date "+%Y.%m.%d_%H.%M")"
    as_user "tar -C \"$MCPATH\" -cf \"$BACKUP_FILE\" $WORLD"
 
    echo "Backing up $SERVICE"
@@ -180,12 +180,12 @@ mc_backup() {
 mc_command() {
   command="$1";
   if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
-    pre_log_len=`wc -l "$MCPATH/logs/latest.log" | awk '{print $1}'`
+    pre_log_len=$(wc -l "$MCPATH/logs/latest.log" | awk '{print $1}')
     echo "$SERVICE is running... executing command"
     as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"$command\"\015'"
     sleep .1 # assumes that the command will run and print to the log file in less than .1 seconds
     # print output
-    tail -n $[`wc -l "$MCPATH/logs/latest.log" | awk '{print $1}'`-$pre_log_len] "$MCPATH/logs/latest.log"
+    tail -n $[$(wc -l "$MCPATH/logs/latest.log" | awk '{print $1}')-$pre_log_len] "$MCPATH/logs/latest.log"
   fi
 }
 

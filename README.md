@@ -7,17 +7,16 @@ Features
 --------
 
  * Support for automated server management
- * Server updating and complete backup
- * Exclude files and directories from full backup by adding them to "exclude.list"
+ * More to come soon
 
 Requirements
 ------------
-git, java, screen, rsync
+git, java, screen
 
 Access server console
 =====================
 
-	screen -x minecraft
+	service minecraft console
 
 Exit the console
 	
@@ -52,8 +51,3 @@ For more help with the script, run
 
 	/etc/init.d/minecraft help
 
-[![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=Ahtenus&url=https://github.com/Ahtenus/minecraft-init&title=minecraft-init&language=en_GB&tags=github&category=software) 
-
-Good stuff
-==========
-[Backup rotation script](https://github.com/adamfeuer/rotate-backups) good if you want some kind or rolling of the world backups.
