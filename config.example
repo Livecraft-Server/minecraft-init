@@ -9,7 +9,11 @@
 # FLAVOR:     What type of server?                                    #
 #               (vanilla, bukkit, spigot, or sponge?)                 #
 # SERVICE:    What's the name of your server.jar?                     #
+#               (craftbukkit*.jar, spigot*.jar, sponge*.jar, etc... ) #
+#                                                                     #
 # OPTIONS:    What flags will the server run with? (nogui by default) #
+# REVISION:   Set the version of the server                           #
+#               ('latest' for latest, '1.10' for 1.10, etc...)        #
 #                                                                     #
 # WORLD:      What is your default world's name?                      #
 #                                                                     #
@@ -25,10 +29,11 @@ MCPATH='/home/minecraft'
 BACKUPPATH='/media/remote.share/minecraft.backup'
 
 SCREENNAME='minecraft_server'
-FLAVOR='sponge'
+FLAVOR='spigot'
 SERVICE='minecraft_server.jar'
 
 OPTIONS='nogui'
+REVISION='latest'
 
 WORLD='world'
 
