@@ -7,6 +7,7 @@ Features
 --------
 
  * Support for automated server management
+ * Easy updates with Spigot BuildTools support
  * More to come soon
 
 Requirements
@@ -35,19 +36,6 @@ Setup
 		sudo update-rc.d minecraft defaults
 
 2. Edit the variables in `config.example` to your needs and rename it to `config` (leaving it in the same folder as the original minecraft script)
-
-3. Edit crontab
-
-	As the server user:
-	
-		crontab -e
-
-	Add these lines:
-
-		#m 	h 	dom	mon	dow	command
-		02 	05 	*	*	*	/etc/init.d/minecraft backup
-		55 	04 	*	*	*	/etc/init.d/minecraft log-roll
-		*/30 	* 	*	*	*	/etc/init.d/minecraft to-disk
 
 For more help with the script, run
 
