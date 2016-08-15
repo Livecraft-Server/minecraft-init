@@ -60,12 +60,10 @@ as_user() {
 }
 
 mc_start() {
-  echo "Debug: mc_start() began"
   if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
     echo "$SERVICE is already running!"
   else
     as_user "cd $MCPATH; screen -h 1024 -dmS ${SCREENNAME} $INVOCATION"
-    as_user "echo $MCPATH"
 	echo "Starting Minecraft server..."
 	sleep 2
     if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
@@ -89,18 +87,18 @@ mc_stop() {
     echo "$SERVICE was not running."
   fi
   if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
-    echo " * Error! $SERVICE could not be stopped."
+    echo "Error! $SERVICE could not be stopped."
   else
-    echo " * $SERVICE is stopped."
+    echo "$SERVICE is stopped."
   fi
 }
 
 mc_update() {
-  echo " * Remember to accept the EULA!"
+  echo "** Remember to accept the EULA! **"
   case "$1" in
     bukkit|spigot)
       as_user "\
-              cd $MCPATH; echo $MCPATH \
+              cd $MCPATH \
               git config --global --unset core.autocrlf \
               wget -q https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar -O $MCPATH/BuildTools.jar \
               chmod +x $MCPATH/BuildTools.jar \
@@ -109,7 +107,7 @@ mc_update() {
       ;;
     sponge)
       #fixme: implement sponge updating
-      as_user "echo \"Sponge support coming soon...\""
+      echo "Sponge support coming soon..."
       ;;
     vanilla)
       if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
@@ -169,7 +167,6 @@ case "$1" in
     ;;
   update)
     mc_stop
-    echo "FLAVOR is $FLAVOR."
     mc_update $FLAVOR
     mc_start
     ;;
