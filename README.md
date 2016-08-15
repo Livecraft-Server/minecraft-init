@@ -13,6 +13,8 @@ Requirements
 ------------
 git, java, screen
 
+Note: This currently does not work with OpenJDK 9.0.
+
 Access server console
 =====================
 
