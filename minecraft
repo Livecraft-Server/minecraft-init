@@ -143,6 +143,7 @@ mc_command() {
   if pgrep -u $USERNAME -f $SERVICE > /dev/null ; then
     pre_log_len=$(wc -l "$MCPATH/logs/latest.log" | awk '{print $1}')
     echo "$SERVICE is running... executing command"
+	as_user "script /dev/null"
     as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"$command\"\015'"
     sleep .1 # assumes that the command will run and print to the log file in less than .1 seconds
     # print output
