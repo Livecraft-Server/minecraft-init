@@ -8,7 +8,8 @@ Features
 
  * Support for automated server management
  * Easy updates with Spigot BuildTools support
- * More to come soon
+ * Easily download and install the latest build of Paper
+ * Run multiple servers on one host with Bungeecord or Waterfall
 
 Requirements
 ------------
