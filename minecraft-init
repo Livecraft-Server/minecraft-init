@@ -16,7 +16,6 @@
 source /etc/minecraft-init.conf
 [[ $? ! -e 0 ]] && echo "Could not source /etc/minecraft-init.conf. Have you run the install.sh script?"; exit || echo "Successfully sourced /etc/minecraft-init.conf"
 
-
 # Test for dependencies
 for i in java wget python screen
 do
@@ -25,46 +24,46 @@ do
 done
 
 # Script begins
-INVOCATION="java -Xmx${MAXHEAP}M -Xms${MINHEAP}M -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=$CPU_COUNT -XX:+AggressiveOpts -jar $SERVICE $OPTIONS" 
-as_user() {
+INVOCATION="java -Xmx${MAXHEAP}M -Xms${MINHEAP}M -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=$CPU_COUNT -XX:+AggressiveOpts -jar $serverName $OPTIONS" 
+_asUser() {
   if [ "$(whoami)" = "$userName" ] ; then
-    bash -c "$1"
+    /usr/bin/env bash -c "$1"
   else
-    su - "$userName" -c "$1"
+    su - "$userName" bash -c "$1"
   fi
 }
 
 mc_start() {
-  if pgrep -u $userName -f $SERVICE > /dev/null ; then
-    echo "$SERVICE is already running!"
+  if pgrep -u $userName -f $serverName > /dev/null ; then
+    echo "$serverName is already running!"
   else
-    as_user "cd $dataPath; screen -h 1024 -dmS ${SCREENNAME} $INVOCATION"
+    _asUser "cd $dataPath; screen -h 1024 -dmS ${serverName} $INVOCATION"
     echo "Starting Minecraft server..."
     sleep 2
-    if pgrep -u $userName -f $SERVICE > /dev/null ; then
-      echo "$SERVICE is now running."
+    if pgrep -u $userName -f $serverName > /dev/null ; then
+      echo "$serverName is now running."
     else
-      echo "Error! Could not start $SERVICE!"
+      echo "Error! Could not start $serverName!"
       echo "Have you agreed to the EULA?"
     fi
   fi
 }
 
 mc_stop() {
-  if pgrep -u $userName -f $SERVICE > /dev/null ; then
-    echo "Stopping $SERVICE"
-    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"say SERVER SHUTTING DOWN IN 10 SECONDS. Saving map...\"\015'"
-    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"save-all\"\015'"
+  if pgrep -u $userName -f $serverName > /dev/null ; then
+    echo "Stopping $serverName"
+    _asUser "screen -p 0 -S ${serverName} -X eval 'stuff \"say SERVER SHUTTING DOWN IN 10 SECONDS. Saving map...\"\015'"
+    _asUser "screen -p 0 -S ${serverName} -X eval 'stuff \"save-all\"\015'"
     sleep 10
-    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"stop\"\015'"
+    _asUser "screen -p 0 -S ${serverName} -X eval 'stuff \"stop\"\015'"
     sleep 7
   else
-    echo "$SERVICE was not running."
+    echo "$serverName was not running."
   fi
-  if pgrep -u $userName -f $SERVICE > /dev/null ; then
-    echo "Error! $SERVICE could not be stopped."
+  if pgrep -u $userName -f $serverName > /dev/null ; then
+    echo "Error! $serverName could not be stopped."
   else
-    echo "$SERVICE is stopped."
+    echo "$serverName is stopped."
   fi
 }
 
@@ -72,7 +71,7 @@ mc_update() {
   echo "** Remember to accept the EULA! **"
   case "$1" in
     bukkit|spigot)
-      as_user "\
+      _asUser "\
               cd $dataPath \
               git config --global --unset core.autocrlf \
               wget -q https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar -O $dataPath/BuildTools.jar \
@@ -86,24 +85,24 @@ mc_update() {
       ;;
     
     vanilla)
-      if pgrep -u $userName -f $SERVICE > /dev/null ; then
-        echo "$SERVICE is running! Will not start update."
+      if pgrep -u $userName -f $serverName > /dev/null ; then
+        echo "$serverName is running! Will not start update."
       else
-        as_user "cd $dataPath && wget -q -O $dataPath/versions --no-check-certificate https://launchermeta.mojang.com/mc/game/version_manifest.json"
+        _asUser "cd $dataPath && wget -q -O $dataPath/versions --no-check-certificate https://launchermeta.mojang.com/mc/game/version_manifest.json"
         if [ "$1" == "snapshot" ] ; then
           JSONVERSION=$(cd $dataPath && cat versions | python -c "exec(\"import json,sys\nobj=json.load(sys.stdin)\nversion=obj['latest']['snapshot']\nfor v in obj['versions']:\n   if v['id']==version:\n    print v['url']\")")
         else
           JSONVERSION=$(cd $dataPath && cat versions | python -c "exec(\"import json,sys\nobj=json.load(sys.stdin)\nversion=obj['latest']['release']\nfor v in obj['versions']:\n   if v['id']==version:\n    print v['url']\")")
         fi
-        as_user "cd $dataPath && wget -q -O $dataPath/versions --no-check-certificate $JSONVERSION"
+        _asUser "cd $dataPath && wget -q -O $dataPath/versions --no-check-certificate $JSONVERSION"
         MC_SERVER_URL=$(cd $dataPath && cat versions | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["downloads"]["server"]["url"]')
-        as_user "rm $dataPath/versions"
-        as_user "cd $dataPath && wget -q -O $dataPath/minecraft_server.jar.update --no-check-certificate $MC_SERVER_URL"
+        _asUser "rm $dataPath/versions"
+        _asUser "cd $dataPath && wget -q -O $dataPath/minecraft_server.jar.update --no-check-certificate $MC_SERVER_URL"
         if [ -f $dataPath/minecraft_server.jar.update ] ; then
-          if $(diff $dataPath/$SERVICE $dataPath/minecraft_server.jar.update >/dev/null) ; then
-            echo "You are already running the latest version of $SERVICE."
+          if $(diff $dataPath/$serverName $dataPath/minecraft_server.jar.update >/dev/null) ; then
+            echo "You are already running the latest version of $serverName."
           else
-            as_user "mv $dataPath/minecraft_server.jar.update $dataPath/$SERVICE"
+            _asUser "mv $dataPath/minecraft_server.jar.update $dataPath/$serverName"
             echo "Minecraft successfully updated."
           fi
         else
@@ -116,12 +115,12 @@ mc_update() {
 
 mc_command() {
   command="$1";
-  if pgrep -u $userName -f $SERVICE > /dev/null ; then
+  if pgrep -u $userName -f $serverName > /dev/null ; then
     pre_log_len=$(wc -l "$dataPath/logs/latest.log" | awk '{print $1}')
-    echo "$SERVICE is running... executing command"
-    as_user "script /dev/null"
-    as_user "screen -p 0 -S ${SCREENNAME} -X eval 'stuff \"$command\"\015'"
-    sleep .1 # assumes that the command will run and print to the log file in less than .1 seconds
+    echo "$serverName is running... executing command"
+    _asUser "script /dev/null"
+    _asUser "screen -p 0 -S ${serverName} -X eval 'stuff \"$command\"\015'"
+    sleep 0.1 # assumes that the command will run and print to the log file in less than .1 seconds
     # print output
     tail -n $[$(wc -l "$dataPath/logs/latest.log" | awk '{print $1}')-$pre_log_len] "$dataPath/logs/latest.log"
   fi
@@ -129,11 +128,8 @@ mc_command() {
 
 #Start-Stop here
 case "$1" in
-  install)
-    
-    ;;
   console)
-    as_user "screen -x $SCREENNAME"
+    _asUser "screen -x $serverName"
     ;;
   start)
     mc_start
@@ -151,10 +147,11 @@ case "$1" in
     mc_start
     ;;
   status)
-    if pgrep -u $userName -f $SERVICE > /dev/null ; then
-      echo "$SERVICE is running."
+    _asUser "screen -wipe"
+    if pgrep -u $userName -f $serverName > /dev/null ; then
+      echo "$serverName is running."
     else
-      echo "$SERVICE is not running."
+      echo "$serverName is not running."
     fi
     ;;
   command)

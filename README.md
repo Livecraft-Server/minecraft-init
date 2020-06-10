@@ -42,3 +42,9 @@ For more help with the script, run
 
 	/etc/init.d/minecraft help
 
+Todo:
+=====
+
+1. Implement multi-user servers i.e. /opt/minecraft-init/data/user1/server1, /opt/minecraft-init/data/user2/server1, etc...
+2. chown that directory to the respective user
+3. Allow the user to use `service minecraft-init` for their server
